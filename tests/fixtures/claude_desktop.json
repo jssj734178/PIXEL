@@ -1,0 +1,397 @@
+{
+ "name": "Claude",
+ "control_type": "Window",
+ "automation_id": "",
+ "class_name": "Chrome_WidgetWin_1",
+ "enabled": true,
+ "offscreen": false,
+ "rect": [
+  -9,
+  -9,
+  1938,
+  1158
+ ],
+ "runtime_id": [
+  42,
+  67118
+ ],
+ "value": null,
+ "value_readonly": true,
+ "patterns": [],
+ "children": [
+  {
+   "name": "",
+   "control_type": "Pane",
+   "automation_id": "",
+   "class_name": "Intermediate D3D Window",
+   "enabled": false,
+   "offscreen": false,
+   "rect": [
+    0,
+    0,
+    1920,
+    1140
+   ],
+   "runtime_id": [
+    42,
+    67182
+   ],
+   "value": null,
+   "value_readonly": true,
+   "patterns": [],
+   "children": []
+  },
+  {
+   "name": "Claude",
+   "control_type": "Pane",
+   "automation_id": "",
+   "class_name": "RootView",
+   "enabled": true,
+   "offscreen": false,
+   "rect": [
+    0,
+    0,
+    1920,
+    1140
+   ],
+   "runtime_id": [
+    42,
+    67118,
+    4,
+    0,
+    0,
+    3
+   ],
+   "value": null,
+   "value_readonly": true,
+   "patterns": [],
+   "children": [
+    {
+     "name": "",
+     "control_type": "Pane",
+     "automation_id": "",
+     "class_name": "NonClientView",
+     "enabled": true,
+     "offscreen": false,
+     "rect": [
+      0,
+      0,
+      1920,
+      1140
+     ],
+     "runtime_id": [
+      42,
+      67118,
+      4,
+      0,
+      0,
+      6
+     ],
+     "value": null,
+     "value_readonly": true,
+     "patterns": [],
+     "children": [
+      {
+       "name": "",
+       "control_type": "Pane",
+       "automation_id": "",
+       "class_name": "WinFrameView",
+       "enabled": true,
+       "offscreen": false,
+       "rect": [
+        0,
+        0,
+        1920,
+        1140
+       ],
+       "runtime_id": [
+        42,
+        67118,
+        4,
+        0,
+        0,
+        7
+       ],
+       "value": null,
+       "value_readonly": true,
+       "patterns": [],
+       "children": [
+        {
+         "name": "",
+         "control_type": "Pane",
+         "automation_id": "",
+         "class_name": "WinCaptionButtonContainer",
+         "enabled": true,
+         "offscreen": false,
+         "rect": [
+          1749,
+          0,
+          172,
+          45
+         ],
+         "runtime_id": [
+          42,
+          67118,
+          4,
+          0,
+          0,
+          10
+         ],
+         "value": null,
+         "value_readonly": true,
+         "patterns": [],
+         "children": [
+          {
+           "name": "Minimize",
+           "control_type": "Button",
+           "automation_id": "",
+           "class_name": "WinCaptionButton",
+           "enabled": true,
+           "offscreen": false,
+           "rect": [
+            1749,
+            0,
+            57,
+            45
+           ],
+           "runtime_id": [
+            42,
+            67118,
+            4,
+            0,
+            0,
+            8
+           ],
+           "value": null,
+           "value_readonly": true,
+           "patterns": [
+            "invoke"
+           ],
+           "children": []
+          },
+          {
+           "name": "Restore",
+           "control_type": "Button",
+           "automation_id": "",
+           "class_name": "WinCaptionButton",
+           "enabled": true,
+           "offscreen": false,
+           "rect": [
+            1805,
+            0,
+            58,
+            45
+           ],
+           "runtime_id": [
+            42,
+            67118,
+            4,
+            0,
+            0,
+            13
+           ],
+           "value": null,
+           "value_readonly": true,
+           "patterns": [
+            "invoke"
+           ],
+           "children": []
+          },
+          {
+           "name": "Close",
+           "control_type": "Button",
+           "automation_id": "",
+           "class_name": "WinCaptionButton",
+           "enabled": true,
+           "offscreen": false,
+           "rect": [
+            1863,
+            0,
+            58,
+            45
+           ],
+           "runtime_id": [
+            42,
+            67118,
+            4,
+            0,
+            0,
+            15
+           ],
+           "value": null,
+           "value_readonly": true,
+           "patterns": [
+            "invoke"
+           ],
+           "children": []
+          }
+         ]
+        },
+        {
+         "name": "",
+         "control_type": "Pane",
+         "automation_id": "",
+         "class_name": "ClientView",
+         "enabled": true,
+         "offscreen": false,
+         "rect": [
+          0,
+          0,
+          1920,
+          1140
+         ],
+         "runtime_id": [
+          42,
+          67118,
+          4,
+          0,
+          0,
+          5
+         ],
+         "value": null,
+         "value_readonly": true,
+         "patterns": [],
+         "children": [
+          {
+           "name": "",
+           "control_type": "Pane",
+           "automation_id": "",
+           "class_name": "View",
+           "enabled": true,
+           "offscreen": false,
+           "rect": [
+            0,
+            0,
+            1920,
+            1140
+           ],
+           "runtime_id": [
+            42,
+            67118,
+            4,
+            0,
+            0,
+            1
+           ],
+           "value": null,
+           "value_readonly": true,
+           "patterns": [],
+           "children": [
+            {
+             "name": "",
+             "control_type": "Pane",
+             "automation_id": "",
+             "class_name": "View",
+             "enabled": true,
+             "offscreen": false,
+             "rect": [
+              0,
+              0,
+              1920,
+              1140
+             ],
+             "runtime_id": [
+              42,
+              67118,
+              4,
+              0,
+              0,
+              2
+             ],
+             "value": null,
+             "value_readonly": true,
+             "patterns": [],
+             "children": [
+              {
+               "name": "",
+               "control_type": "Pane",
+               "automation_id": "",
+               "class_name": "View",
+               "enabled": true,
+               "offscreen": false,
+               "rect": [
+                0,
+                0,
+                1920,
+                1140
+               ],
+               "runtime_id": [
+                42,
+                67118,
+                4,
+                0,
+                0,
+                23
+               ],
+               "value": null,
+               "value_readonly": true,
+               "patterns": [],
+               "children": []
+              },
+              {
+               "name": "",
+               "control_type": "Pane",
+               "automation_id": "",
+               "class_name": "View",
+               "enabled": true,
+               "offscreen": false,
+               "rect": [
+                0,
+                0,
+                1920,
+                1140
+               ],
+               "runtime_id": [
+                42,
+                67118,
+                4,
+                0,
+                0,
+                18
+               ],
+               "value": null,
+               "value_readonly": true,
+               "patterns": [],
+               "children": [
+                {
+                 "name": "",
+                 "control_type": "Pane",
+                 "automation_id": "",
+                 "class_name": "View",
+                 "enabled": true,
+                 "offscreen": false,
+                 "rect": [
+                  0,
+                  0,
+                  1920,
+                  1140
+                 ],
+                 "runtime_id": [
+                  42,
+                  67118,
+                  4,
+                  0,
+                  0,
+                  28
+                 ],
+                 "value": null,
+                 "value_readonly": true,
+                 "patterns": [],
+                 "children": []
+                }
+               ]
+              }
+             ]
+            }
+           ]
+          }
+         ]
+        }
+       ]
+      }
+     ]
+    }
+   ]
+  }
+ ]
+}

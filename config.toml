@@ -17,5 +17,6 @@ exe = "chrome.exe"
 process = "chrome.exe"
 
 [apps.claude]
-exe = "%LOCALAPPDATA%\\AnthropicClaude\\claude.exe"
+# Store (MSIX) package: launched by app ID, since its folder changes with each update.
+exe = "shell:AppsFolder\\Claude_pzs8sxrjxfjjc!Claude"
 process = "claude.exe"

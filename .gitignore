@@ -3,6 +3,7 @@
 tests/fixtures/*
 !tests/fixtures/notepad.json
 !tests/fixtures/chrome.json
+!tests/fixtures/claude_desktop.json
 
 # Runtime state (last tree read)
 .pixel/

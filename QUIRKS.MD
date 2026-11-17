@@ -40,5 +40,9 @@
 
 \- Clean tree: yes
 
+- M1 (Nov 17, 2026): **UIA sees only the window frame** (15 raw nodes: title plus Minimize, Restore and Close). The app content is a set of empty Chromium "View" panes, and there is no web-content child window. This held on repeated reads and after an MSAA `AccessibleObjectFromWindow` request. Unlike Chrome, the app does not turn on accessibility when a client asks. The M0 result (named controls) probably came from a tool that switched accessibility on another way.
+- Likely fix, untested: start the app with Chromium's `--force-renderer-accessibility`. It is a Store (MSIX) app at `C:\Program Files\WindowsApps\Claude_<version>_x64__pzs8sxrjxfjjc\app\claude.exe`, so arguments have to go through `IApplicationActivationManager::ActivateApplication` with the app ID `Claude_pzs8sxrjxfjjc!Claude`. The exe cannot be launched by path, and the folder changes with every update.
+- `config.toml` launches it with `shell:AppsFolder\Claude_pzs8sxrjxfjjc!Claude`.
+
 
 
