@@ -1,0 +1,18 @@
+# Raw accessibility trees can hold personal content (window titles, tab names,
+# typed text). Each fixture is ignored until reviewed, then allowlisted here.
+tests/fixtures/*
+!tests/fixtures/notepad.json
+
+# Runtime state (last tree read)
+.pixel/
+
+# Files PIXEL moves instead of deleting
+_to_delete/
+
+# Per-user Claude Code settings
+.claude/settings.local.json
+
+.venv/
+__pycache__/
+*.pyc
+.pytest_cache/

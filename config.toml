@@ -1,0 +1,21 @@
+# PIXEL configuration. Model names will live here from M2 on.
+
+[bridge]
+max_depth = 12        # raw UIA levels walked below the window
+max_elements = 120    # lines kept per read (interactive + context)
+chars_per_token = 4   # token estimate divisor
+
+# open_app only launches or focuses apps listed here.
+# exe: what gets launched (env vars like %LOCALAPPDATA% are expanded).
+# process: the executable name used to find an existing window.
+[apps.notepad]
+exe = "notepad.exe"
+process = "notepad.exe"
+
+[apps.chrome]
+exe = "chrome.exe"
+process = "chrome.exe"
+
+[apps.claude]
+exe = "%LOCALAPPDATA%\\AnthropicClaude\\claude.exe"
+process = "claude.exe"

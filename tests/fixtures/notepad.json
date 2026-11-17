@@ -1,0 +1,1147 @@
+{
+ "name": "*Untitled - Notepad",
+ "control_type": "Window",
+ "automation_id": "",
+ "class_name": "Notepad",
+ "enabled": true,
+ "offscreen": false,
+ "rect": [
+  -9,
+  -9,
+  1938,
+  1158
+ ],
+ "runtime_id": [
+  42,
+  132364
+ ],
+ "value": null,
+ "value_readonly": true,
+ "patterns": [],
+ "children": [
+  {
+   "name": "",
+   "control_type": "Pane",
+   "automation_id": "",
+   "class_name": "NotepadTextBox",
+   "enabled": true,
+   "offscreen": false,
+   "rect": [
+    -1,
+    82,
+    1922,
+    1019
+   ],
+   "runtime_id": [
+    42,
+    527042
+   ],
+   "value": null,
+   "value_readonly": true,
+   "patterns": [],
+   "children": [
+    {
+     "name": "Text editor",
+     "control_type": "Document",
+     "automation_id": "",
+     "class_name": "RichEditD2DPT",
+     "enabled": true,
+     "offscreen": false,
+     "rect": [
+      -1,
+      82,
+      1922,
+      1019
+     ],
+     "runtime_id": [
+      42,
+      790470
+     ],
+     "value": "\r",
+     "value_readonly": false,
+     "patterns": [
+      "value"
+     ],
+     "children": []
+    }
+   ]
+  },
+  {
+   "name": "",
+   "control_type": "Pane",
+   "automation_id": "",
+   "class_name": "Microsoft.UI.Content.DesktopChildSiteBridge",
+   "enabled": true,
+   "offscreen": false,
+   "rect": [
+    49,
+    1,
+    359,
+    40
+   ],
+   "runtime_id": [
+    42,
+    132356
+   ],
+   "value": null,
+   "value_readonly": true,
+   "patterns": [],
+   "children": [
+    {
+     "name": "",
+     "control_type": "Pane",
+     "automation_id": "",
+     "class_name": "InputSiteWindowClass",
+     "enabled": true,
+     "offscreen": false,
+     "rect": [
+      49,
+      1,
+      359,
+      40
+     ],
+     "runtime_id": [
+      42,
+      198032
+     ],
+     "value": null,
+     "value_readonly": true,
+     "patterns": [],
+     "children": [
+      {
+       "name": "",
+       "control_type": "Tab",
+       "automation_id": "Tabs",
+       "class_name": "Microsoft.UI.Xaml.Controls.TabView",
+       "enabled": true,
+       "offscreen": false,
+       "rect": [
+        49,
+        1,
+        359,
+        40
+       ],
+       "runtime_id": [
+        42,
+        198032,
+        4,
+        3
+       ],
+       "value": null,
+       "value_readonly": true,
+       "patterns": [],
+       "children": [
+        {
+         "name": "",
+         "control_type": "List",
+         "automation_id": "TabListView",
+         "class_name": "ListView",
+         "enabled": true,
+         "offscreen": false,
+         "rect": [
+          51,
+          1,
+          310,
+          40
+         ],
+         "runtime_id": [
+          42,
+          198032,
+          4,
+          4
+         ],
+         "value": null,
+         "value_readonly": true,
+         "patterns": [],
+         "children": [
+          {
+           "name": "Untitled. Modified.",
+           "control_type": "TabItem",
+           "automation_id": "",
+           "class_name": "ListViewItem",
+           "enabled": true,
+           "offscreen": false,
+           "rect": [
+            54,
+            1,
+            307,
+            40
+           ],
+           "runtime_id": [
+            42,
+            198032,
+            4,
+            122
+           ],
+           "value": null,
+           "value_readonly": true,
+           "patterns": [
+            "select"
+           ],
+           "children": [
+            {
+             "name": "Untitled",
+             "control_type": "Text",
+             "automation_id": "",
+             "class_name": "TextBlock",
+             "enabled": true,
+             "offscreen": false,
+             "rect": [
+              70,
+              11,
+              56,
+              19
+             ],
+             "runtime_id": [
+              42,
+              198032,
+              4,
+              96
+             ],
+             "value": null,
+             "value_readonly": true,
+             "patterns": [],
+             "children": []
+            }
+           ]
+          }
+         ]
+        },
+        {
+         "name": "Add New Tab",
+         "control_type": "Button",
+         "automation_id": "AddButton",
+         "class_name": "Button",
+         "enabled": true,
+         "offscreen": false,
+         "rect": [
+          365,
+          8,
+          40,
+          30
+         ],
+         "runtime_id": [
+          42,
+          198032,
+          4,
+          58
+         ],
+         "value": null,
+         "value_readonly": true,
+         "patterns": [
+          "invoke"
+         ],
+         "children": []
+        }
+       ]
+      }
+     ]
+    }
+   ]
+  },
+  {
+   "name": "",
+   "control_type": "Pane",
+   "automation_id": "",
+   "class_name": "Microsoft.UI.Content.DesktopChildSiteBridge",
+   "enabled": true,
+   "offscreen": false,
+   "rect": [
+    -1,
+    41,
+    1922,
+    41
+   ],
+   "runtime_id": [
+    42,
+    1574802
+   ],
+   "value": null,
+   "value_readonly": true,
+   "patterns": [],
+   "children": [
+    {
+     "name": "",
+     "control_type": "Pane",
+     "automation_id": "",
+     "class_name": "InputSiteWindowClass",
+     "enabled": true,
+     "offscreen": false,
+     "rect": [
+      -1,
+      41,
+      1922,
+      41
+     ],
+     "runtime_id": [
+      42,
+      1641850
+     ],
+     "value": null,
+     "value_readonly": true,
+     "patterns": [],
+     "children": [
+      {
+       "name": "",
+       "control_type": "MenuBar",
+       "automation_id": "MenuBar",
+       "class_name": "",
+       "enabled": true,
+       "offscreen": false,
+       "rect": [
+        -1,
+        41,
+        199,
+        40
+       ],
+       "runtime_id": [
+        42,
+        1641850,
+        4,
+        59
+       ],
+       "value": null,
+       "value_readonly": true,
+       "patterns": [],
+       "children": [
+        {
+         "name": "File",
+         "control_type": "MenuItem",
+         "automation_id": "File",
+         "class_name": "Microsoft.UI.Xaml.Controls.MenuBarItem",
+         "enabled": true,
+         "offscreen": false,
+         "rect": [
+          4,
+          41,
+          52,
+          40
+         ],
+         "runtime_id": [
+          42,
+          1641850,
+          4,
+          60
+         ],
+         "value": null,
+         "value_readonly": true,
+         "patterns": [
+          "invoke",
+          "expand"
+         ],
+         "children": []
+        },
+        {
+         "name": "Edit",
+         "control_type": "MenuItem",
+         "automation_id": "Edit",
+         "class_name": "Microsoft.UI.Xaml.Controls.MenuBarItem",
+         "enabled": true,
+         "offscreen": false,
+         "rect": [
+          66,
+          41,
+          55,
+          40
+         ],
+         "runtime_id": [
+          42,
+          1641850,
+          4,
+          61
+         ],
+         "value": null,
+         "value_readonly": true,
+         "patterns": [
+          "invoke",
+          "expand"
+         ],
+         "children": []
+        },
+        {
+         "name": "View",
+         "control_type": "MenuItem",
+         "automation_id": "View",
+         "class_name": "Microsoft.UI.Xaml.Controls.MenuBarItem",
+         "enabled": true,
+         "offscreen": false,
+         "rect": [
+          131,
+          41,
+          62,
+          40
+         ],
+         "runtime_id": [
+          42,
+          1641850,
+          4,
+          62
+         ],
+         "value": null,
+         "value_readonly": true,
+         "patterns": [
+          "invoke",
+          "expand"
+         ],
+         "children": []
+        }
+       ]
+      },
+      {
+       "name": "Headings",
+       "control_type": "Button",
+       "automation_id": "",
+       "class_name": "Microsoft.UI.Xaml.Controls.DropDownButton",
+       "enabled": true,
+       "offscreen": false,
+       "rect": [
+        753,
+        41,
+        71,
+        40
+       ],
+       "runtime_id": [
+        42,
+        1641850,
+        4,
+        80
+       ],
+       "value": null,
+       "value_readonly": true,
+       "patterns": [
+        "invoke",
+        "expand"
+       ],
+       "children": []
+      },
+      {
+       "name": "Lists",
+       "control_type": "Button",
+       "automation_id": "",
+       "class_name": "Microsoft.UI.Xaml.Controls.DropDownButton",
+       "enabled": true,
+       "offscreen": false,
+       "rect": [
+        824,
+        41,
+        71,
+        40
+       ],
+       "runtime_id": [
+        42,
+        1641850,
+        4,
+        81
+       ],
+       "value": null,
+       "value_readonly": true,
+       "patterns": [
+        "invoke",
+        "expand"
+       ],
+       "children": []
+      },
+      {
+       "name": "Bold (Ctrl+B)",
+       "control_type": "Button",
+       "automation_id": "",
+       "class_name": "ToggleButton",
+       "enabled": true,
+       "offscreen": false,
+       "rect": [
+        895,
+        41,
+        40,
+        40
+       ],
+       "runtime_id": [
+        42,
+        1641850,
+        4,
+        82
+       ],
+       "value": null,
+       "value_readonly": true,
+       "patterns": [
+        "toggle"
+       ],
+       "children": []
+      },
+      {
+       "name": "Italic (Ctrl+I)",
+       "control_type": "Button",
+       "automation_id": "",
+       "class_name": "ToggleButton",
+       "enabled": true,
+       "offscreen": false,
+       "rect": [
+        935,
+        41,
+        40,
+        40
+       ],
+       "runtime_id": [
+        42,
+        1641850,
+        4,
+        83
+       ],
+       "value": null,
+       "value_readonly": true,
+       "patterns": [
+        "toggle"
+       ],
+       "children": []
+      },
+      {
+       "name": "Strikethrough (Ctrl+Shift+X)",
+       "control_type": "Button",
+       "automation_id": "",
+       "class_name": "ToggleButton",
+       "enabled": true,
+       "offscreen": false,
+       "rect": [
+        975,
+        41,
+        40,
+        40
+       ],
+       "runtime_id": [
+        42,
+        1641850,
+        4,
+        84
+       ],
+       "value": null,
+       "value_readonly": true,
+       "patterns": [
+        "toggle"
+       ],
+       "children": []
+      },
+      {
+       "name": "Link (Ctrl+K)",
+       "control_type": "Button",
+       "automation_id": "",
+       "class_name": "ToggleButton",
+       "enabled": true,
+       "offscreen": false,
+       "rect": [
+        1015,
+        41,
+        39,
+        40
+       ],
+       "runtime_id": [
+        42,
+        1641850,
+        4,
+        85
+       ],
+       "value": null,
+       "value_readonly": true,
+       "patterns": [
+        "toggle"
+       ],
+       "children": []
+      },
+      {
+       "name": "Table",
+       "control_type": "Button",
+       "automation_id": "",
+       "class_name": "Microsoft.UI.Xaml.Controls.DropDownButton",
+       "enabled": true,
+       "offscreen": false,
+       "rect": [
+        1055,
+        41,
+        71,
+        40
+       ],
+       "runtime_id": [
+        42,
+        1641850,
+        4,
+        86
+       ],
+       "value": null,
+       "value_readonly": true,
+       "patterns": [
+        "invoke",
+        "expand"
+       ],
+       "children": []
+      },
+      {
+       "name": "Clear formatting (Ctrl+Space)",
+       "control_type": "Button",
+       "automation_id": "",
+       "class_name": "ToggleButton",
+       "enabled": true,
+       "offscreen": false,
+       "rect": [
+        1126,
+        41,
+        40,
+        40
+       ],
+       "runtime_id": [
+        42,
+        1641850,
+        4,
+        87
+       ],
+       "value": null,
+       "value_readonly": true,
+       "patterns": [
+        "toggle"
+       ],
+       "children": []
+      },
+      {
+       "name": "Writing tools",
+       "control_type": "Button",
+       "automation_id": "RewriteDropDownButton",
+       "class_name": "Microsoft.UI.Xaml.Controls.DropDownButton",
+       "enabled": true,
+       "offscreen": false,
+       "rect": [
+        1711,
+        41,
+        71,
+        40
+       ],
+       "runtime_id": [
+        42,
+        1641850,
+        4,
+        63
+       ],
+       "value": null,
+       "value_readonly": true,
+       "patterns": [
+        "invoke",
+        "expand"
+       ],
+       "children": []
+      },
+      {
+       "name": "What's new",
+       "control_type": "Button",
+       "automation_id": "FREButton",
+       "class_name": "Button",
+       "enabled": true,
+       "offscreen": false,
+       "rect": [
+        1787,
+        42,
+        37,
+        38
+       ],
+       "runtime_id": [
+        42,
+        1641850,
+        4,
+        64
+       ],
+       "value": null,
+       "value_readonly": true,
+       "patterns": [
+        "invoke"
+       ],
+       "children": []
+      },
+      {
+       "name": "User avatar",
+       "control_type": "Button",
+       "automation_id": "AvatarButton",
+       "class_name": "Button",
+       "enabled": true,
+       "offscreen": false,
+       "rect": [
+        1829,
+        41,
+        38,
+        40
+       ],
+       "runtime_id": [
+        42,
+        1641850,
+        4,
+        65
+       ],
+       "value": null,
+       "value_readonly": true,
+       "patterns": [
+        "invoke"
+       ],
+       "children": []
+      },
+      {
+       "name": "Settings",
+       "control_type": "Button",
+       "automation_id": "SettingsButton",
+       "class_name": "Button",
+       "enabled": true,
+       "offscreen": false,
+       "rect": [
+        1873,
+        41,
+        38,
+        40
+       ],
+       "runtime_id": [
+        42,
+        1641850,
+        4,
+        67
+       ],
+       "value": null,
+       "value_readonly": true,
+       "patterns": [
+        "invoke"
+       ],
+       "children": []
+      },
+      {
+       "name": "",
+       "control_type": "Window",
+       "automation_id": "PrivacyTeachingTip",
+       "class_name": "Microsoft.UI.Xaml.Controls.TeachingTip",
+       "enabled": true,
+       "offscreen": true,
+       "rect": [
+        0,
+        0,
+        0,
+        0
+       ],
+       "runtime_id": [
+        42,
+        1641850,
+        4,
+        68
+       ],
+       "value": null,
+       "value_readonly": true,
+       "patterns": [],
+       "children": []
+      },
+      {
+       "name": "",
+       "control_type": "Pane",
+       "automation_id": "PsDownloadDetailTeachingTip",
+       "class_name": "Microsoft.UI.Xaml.Controls.TeachingTip",
+       "enabled": true,
+       "offscreen": true,
+       "rect": [
+        0,
+        0,
+        0,
+        0
+       ],
+       "runtime_id": [
+        42,
+        1641850,
+        4,
+        69
+       ],
+       "value": null,
+       "value_readonly": true,
+       "patterns": [],
+       "children": []
+      },
+      {
+       "name": "Local AI model must complete downloading to use this feature while signed out.",
+       "control_type": "Pane",
+       "automation_id": "PsDownloadLightTeachingTip",
+       "class_name": "Microsoft.UI.Xaml.Controls.TeachingTip",
+       "enabled": true,
+       "offscreen": true,
+       "rect": [
+        0,
+        0,
+        0,
+        0
+       ],
+       "runtime_id": [
+        42,
+        1641850,
+        4,
+        70
+       ],
+       "value": null,
+       "value_readonly": true,
+       "patterns": [],
+       "children": []
+      }
+     ]
+    }
+   ]
+  },
+  {
+   "name": "",
+   "control_type": "Pane",
+   "automation_id": "",
+   "class_name": "Microsoft.UI.Content.DesktopChildSiteBridge",
+   "enabled": false,
+   "offscreen": false,
+   "rect": [
+    -1,
+    1101,
+    1922,
+    40
+   ],
+   "runtime_id": [
+    42,
+    460154
+   ],
+   "value": null,
+   "value_readonly": true,
+   "patterns": [],
+   "children": [
+    {
+     "name": "",
+     "control_type": "Pane",
+     "automation_id": "",
+     "class_name": "InputSiteWindowClass",
+     "enabled": false,
+     "offscreen": false,
+     "rect": [
+      -1,
+      1101,
+      1922,
+      40
+     ],
+     "runtime_id": [
+      42,
+      2229232
+     ],
+     "value": null,
+     "value_readonly": true,
+     "patterns": [],
+     "children": [
+      {
+       "name": "Line 2,\nColumn 1",
+       "control_type": "Text",
+       "automation_id": "ContentTextBlock",
+       "class_name": "TextBlock",
+       "enabled": true,
+       "offscreen": false,
+       "rect": [
+        19,
+        1111,
+        76,
+        20
+       ],
+       "runtime_id": [
+        42,
+        2229232,
+        4,
+        71
+       ],
+       "value": null,
+       "value_readonly": true,
+       "patterns": [],
+       "children": []
+      },
+      {
+       "name": "1 character",
+       "control_type": "Text",
+       "automation_id": "ContentTextBlock",
+       "class_name": "TextBlock",
+       "enabled": true,
+       "offscreen": false,
+       "rect": [
+        130,
+        1111,
+        73,
+        20
+       ],
+       "runtime_id": [
+        42,
+        2229232,
+        4,
+        72
+       ],
+       "value": null,
+       "value_readonly": true,
+       "patterns": [],
+       "children": []
+      },
+      {
+       "name": "Plain text",
+       "control_type": "Text",
+       "automation_id": "ContentTextBlock",
+       "class_name": "TextBlock",
+       "enabled": true,
+       "offscreen": false,
+       "rect": [
+        383,
+        1101,
+        78,
+        40
+       ],
+       "runtime_id": [
+        42,
+        2229232,
+        4,
+        88
+       ],
+       "value": null,
+       "value_readonly": true,
+       "patterns": [],
+       "children": []
+      },
+      {
+       "name": "Zoom",
+       "control_type": "Text",
+       "automation_id": "ContentTextBlock",
+       "class_name": "TextBlock",
+       "enabled": true,
+       "offscreen": false,
+       "rect": [
+        1458,
+        1111,
+        38,
+        20
+       ],
+       "runtime_id": [
+        42,
+        2229232,
+        4,
+        75
+       ],
+       "value": null,
+       "value_readonly": true,
+       "patterns": [],
+       "children": []
+      },
+      {
+       "name": " Windows (CRLF)",
+       "control_type": "Text",
+       "automation_id": "ContentTextBlock",
+       "class_name": "TextBlock",
+       "enabled": true,
+       "offscreen": false,
+       "rect": [
+        1543,
+        1111,
+        113,
+        20
+       ],
+       "runtime_id": [
+        42,
+        2229232,
+        4,
+        76
+       ],
+       "value": null,
+       "value_readonly": true,
+       "patterns": [],
+       "children": []
+      },
+      {
+       "name": " UTF-8",
+       "control_type": "Text",
+       "automation_id": "ContentTextBlock",
+       "class_name": "TextBlock",
+       "enabled": true,
+       "offscreen": false,
+       "rect": [
+        1753,
+        1111,
+        45,
+        20
+       ],
+       "runtime_id": [
+        42,
+        2229232,
+        4,
+        77
+       ],
+       "value": null,
+       "value_readonly": true,
+       "patterns": [],
+       "children": []
+      }
+     ]
+    }
+   ]
+  },
+  {
+   "name": "",
+   "control_type": "TitleBar",
+   "automation_id": "",
+   "class_name": "",
+   "enabled": true,
+   "offscreen": true,
+   "rect": [
+    0,
+    0,
+    0,
+    0
+   ],
+   "runtime_id": [
+    42,
+    132364,
+    3,
+    -2147483647,
+    132364,
+    -2,
+    0
+   ],
+   "value": "*Untitled - Notepad",
+   "value_readonly": false,
+   "patterns": [
+    "value"
+   ],
+   "children": [
+    {
+     "name": "System",
+     "control_type": "MenuBar",
+     "automation_id": "MenuBar",
+     "class_name": "",
+     "enabled": true,
+     "offscreen": false,
+     "rect": [
+      0,
+      0,
+      28,
+      28
+     ],
+     "runtime_id": [
+      42,
+      132364,
+      3,
+      -2147483646,
+      25356,
+      65754,
+      0
+     ],
+     "value": null,
+     "value_readonly": true,
+     "patterns": [],
+     "children": [
+      {
+       "name": "System",
+       "control_type": "MenuItem",
+       "automation_id": "",
+       "class_name": "",
+       "enabled": true,
+       "offscreen": false,
+       "rect": [
+        0,
+        0,
+        28,
+        28
+       ],
+       "runtime_id": [
+        42,
+        132364,
+        3,
+        -2147483646,
+        17008,
+        65754,
+        1
+       ],
+       "value": null,
+       "value_readonly": true,
+       "patterns": [
+        "expand"
+       ],
+       "children": []
+      }
+     ]
+    },
+    {
+     "name": "Minimize",
+     "control_type": "Button",
+     "automation_id": "",
+     "class_name": "",
+     "enabled": true,
+     "offscreen": false,
+     "rect": [
+      1740,
+      0,
+      60,
+      36
+     ],
+     "runtime_id": [
+      42,
+      132364,
+      3,
+      -2147483647,
+      132364,
+      -2,
+      2
+     ],
+     "value": null,
+     "value_readonly": true,
+     "patterns": [
+      "invoke"
+     ],
+     "children": []
+    },
+    {
+     "name": "Restore",
+     "control_type": "Button",
+     "automation_id": "",
+     "class_name": "",
+     "enabled": true,
+     "offscreen": false,
+     "rect": [
+      1800,
+      0,
+      59,
+      36
+     ],
+     "runtime_id": [
+      42,
+      132364,
+      3,
+      -2147483647,
+      132364,
+      -2,
+      3
+     ],
+     "value": null,
+     "value_readonly": true,
+     "patterns": [
+      "invoke"
+     ],
+     "children": []
+    },
+    {
+     "name": "Close",
+     "control_type": "Button",
+     "automation_id": "",
+     "class_name": "",
+     "enabled": true,
+     "offscreen": false,
+     "rect": [
+      1859,
+      0,
+      61,
+      36
+     ],
+     "runtime_id": [
+      42,
+      132364,
+      3,
+      -2147483647,
+      132364,
+      -2,
+      5
+     ],
+     "value": null,
+     "value_readonly": true,
+     "patterns": [
+      "invoke"
+     ],
+     "children": []
+    }
+   ]
+  }
+ ]
+}

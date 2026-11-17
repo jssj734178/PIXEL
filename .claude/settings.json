@@ -1,0 +1,13 @@
+{
+  "permissions": {
+    "allow": [
+      "Edit",
+      "Write",
+      "PowerShell(uv run pytest*)",
+      "PowerShell(uv run pixel *)",
+      "PowerShell(uv run python *)",
+      "PowerShell(git status*)",
+      "PowerShell(git diff*)"
+    ]
+  }
+}
