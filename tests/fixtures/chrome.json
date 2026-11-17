@@ -1,0 +1,1296 @@
+{
+ "name": "Example Domain - Google Chrome",
+ "control_type": "Window",
+ "automation_id": "",
+ "class_name": "Chrome_WidgetWin_1",
+ "enabled": true,
+ "offscreen": false,
+ "rect": [
+  -9,
+  -9,
+  1938,
+  1158
+ ],
+ "runtime_id": [
+  42,
+  658282
+ ],
+ "value": null,
+ "value_readonly": true,
+ "patterns": [],
+ "children": [
+  {
+   "name": "",
+   "control_type": "Pane",
+   "automation_id": "",
+   "class_name": "Intermediate D3D Window",
+   "enabled": false,
+   "offscreen": false,
+   "rect": [
+    0,
+    0,
+    1920,
+    1140
+   ],
+   "runtime_id": [
+    42,
+    528344
+   ],
+   "value": null,
+   "value_readonly": true,
+   "patterns": [],
+   "children": []
+  },
+  {
+   "name": "Example Domain - Google Chrome - User",
+   "control_type": "Pane",
+   "automation_id": "",
+   "class_name": "BrowserRootView",
+   "enabled": true,
+   "offscreen": false,
+   "rect": [
+    0,
+    0,
+    1920,
+    1140
+   ],
+   "runtime_id": [
+    42,
+    658282,
+    4,
+    0,
+    0,
+    902
+   ],
+   "value": null,
+   "value_readonly": true,
+   "patterns": [],
+   "children": [
+    {
+     "name": "",
+     "control_type": "Pane",
+     "automation_id": "",
+     "class_name": "NonClientView",
+     "enabled": true,
+     "offscreen": false,
+     "rect": [
+      0,
+      0,
+      1920,
+      1140
+     ],
+     "runtime_id": [
+      42,
+      658282,
+      4,
+      0,
+      0,
+      904
+     ],
+     "value": null,
+     "value_readonly": true,
+     "patterns": [],
+     "children": [
+      {
+       "name": "",
+       "control_type": "Pane",
+       "automation_id": "",
+       "class_name": "BrowserFrameViewWin",
+       "enabled": true,
+       "offscreen": false,
+       "rect": [
+        0,
+        0,
+        1920,
+        1140
+       ],
+       "runtime_id": [
+        42,
+        658282,
+        4,
+        0,
+        0,
+        905
+       ],
+       "value": null,
+       "value_readonly": true,
+       "patterns": [],
+       "children": [
+        {
+         "name": "",
+         "control_type": "Pane",
+         "automation_id": "",
+         "class_name": "BrowserCaptionButtonContainer",
+         "enabled": true,
+         "offscreen": false,
+         "rect": [
+          1749,
+          0,
+          172,
+          50
+         ],
+         "runtime_id": [
+          42,
+          658282,
+          4,
+          0,
+          0,
+          908
+         ],
+         "value": null,
+         "value_readonly": true,
+         "patterns": [],
+         "children": [
+          {
+           "name": "Minimize",
+           "control_type": "Button",
+           "automation_id": "view_1",
+           "class_name": "WindowsCaptionButton",
+           "enabled": true,
+           "offscreen": false,
+           "rect": [
+            1749,
+            0,
+            57,
+            50
+           ],
+           "runtime_id": [
+            42,
+            658282,
+            4,
+            0,
+            0,
+            906
+           ],
+           "value": null,
+           "value_readonly": true,
+           "patterns": [
+            "invoke"
+           ],
+           "children": []
+          },
+          {
+           "name": "Restore",
+           "control_type": "Button",
+           "automation_id": "view_3",
+           "class_name": "WindowsCaptionButton",
+           "enabled": true,
+           "offscreen": false,
+           "rect": [
+            1805,
+            0,
+            58,
+            50
+           ],
+           "runtime_id": [
+            42,
+            658282,
+            4,
+            0,
+            0,
+            911
+           ],
+           "value": null,
+           "value_readonly": true,
+           "patterns": [
+            "invoke"
+           ],
+           "children": []
+          },
+          {
+           "name": "Close",
+           "control_type": "Button",
+           "automation_id": "view_4",
+           "class_name": "WindowsCaptionButton",
+           "enabled": true,
+           "offscreen": false,
+           "rect": [
+            1863,
+            0,
+            58,
+            50
+           ],
+           "runtime_id": [
+            42,
+            658282,
+            4,
+            0,
+            0,
+            913
+           ],
+           "value": null,
+           "value_readonly": true,
+           "patterns": [
+            "invoke"
+           ],
+           "children": []
+          }
+         ]
+        },
+        {
+         "name": "",
+         "control_type": "Pane",
+         "automation_id": "",
+         "class_name": "BrowserView",
+         "enabled": true,
+         "offscreen": false,
+         "rect": [
+          0,
+          0,
+          1920,
+          1140
+         ],
+         "runtime_id": [
+          42,
+          658282,
+          4,
+          0,
+          0,
+          751
+         ],
+         "value": null,
+         "value_readonly": true,
+         "patterns": [],
+         "children": [
+          {
+           "name": "",
+           "control_type": "Pane",
+           "automation_id": "",
+           "class_name": "TopContainerView",
+           "enabled": true,
+           "offscreen": false,
+           "rect": [
+            0,
+            50,
+            1920,
+            58
+           ],
+           "runtime_id": [
+            42,
+            658282,
+            4,
+            0,
+            0,
+            753
+           ],
+           "value": null,
+           "value_readonly": true,
+           "patterns": [],
+           "children": [
+            {
+             "name": "",
+             "control_type": "ToolBar",
+             "automation_id": "view_1000",
+             "class_name": "ToolbarView",
+             "enabled": true,
+             "offscreen": false,
+             "rect": [
+              0,
+              50,
+              1920,
+              58
+             ],
+             "runtime_id": [
+              42,
+              658282,
+              4,
+              0,
+              0,
+              754
+             ],
+             "value": null,
+             "value_readonly": true,
+             "patterns": [],
+             "children": [
+              {
+               "name": "Back",
+               "control_type": "Button",
+               "automation_id": "view_1001",
+               "class_name": "BackForwardButton",
+               "enabled": true,
+               "offscreen": false,
+               "rect": [
+                0,
+                58,
+                50,
+                43
+               ],
+               "runtime_id": [
+                42,
+                658282,
+                4,
+                0,
+                0,
+                934
+               ],
+               "value": null,
+               "value_readonly": true,
+               "patterns": [
+                "invoke"
+               ],
+               "children": []
+              },
+              {
+               "name": "Forward",
+               "control_type": "Button",
+               "automation_id": "view_1002",
+               "class_name": "BackForwardButton",
+               "enabled": false,
+               "offscreen": false,
+               "rect": [
+                53,
+                58,
+                43,
+                43
+               ],
+               "runtime_id": [
+                42,
+                658282,
+                4,
+                0,
+                0,
+                939
+               ],
+               "value": null,
+               "value_readonly": true,
+               "patterns": [
+                "invoke"
+               ],
+               "children": []
+              },
+              {
+               "name": "Reload",
+               "control_type": "Button",
+               "automation_id": "view_1003",
+               "class_name": "ReloadButton",
+               "enabled": true,
+               "offscreen": false,
+               "rect": [
+                98,
+                58,
+                43,
+                43
+               ],
+               "runtime_id": [
+                42,
+                658282,
+                4,
+                0,
+                0,
+                944
+               ],
+               "value": null,
+               "value_readonly": true,
+               "patterns": [
+                "invoke"
+               ],
+               "children": []
+              },
+              {
+               "name": "",
+               "control_type": "Group",
+               "automation_id": "",
+               "class_name": "LocationBarView",
+               "enabled": true,
+               "offscreen": false,
+               "rect": [
+                151,
+                58,
+                1663,
+                43
+               ],
+               "runtime_id": [
+                42,
+                658282,
+                4,
+                0,
+                0,
+                917
+               ],
+               "value": null,
+               "value_readonly": true,
+               "patterns": [],
+               "children": [
+                {
+                 "name": "View site information",
+                 "control_type": "Button",
+                 "automation_id": "view_1011",
+                 "class_name": "LocationIconView",
+                 "enabled": true,
+                 "offscreen": false,
+                 "rect": [
+                  158,
+                  64,
+                  31,
+                  31
+                 ],
+                 "runtime_id": [
+                  42,
+                  658282,
+                  4,
+                  0,
+                  0,
+                  1014
+                 ],
+                 "value": null,
+                 "value_readonly": true,
+                 "patterns": [
+                  "invoke"
+                 ],
+                 "children": []
+                },
+                {
+                 "name": "Address and search bar",
+                 "control_type": "Edit",
+                 "automation_id": "view_1012",
+                 "class_name": "OmniboxViewViews",
+                 "enabled": true,
+                 "offscreen": false,
+                 "rect": [
+                  198,
+                  64,
+                  1562,
+                  31
+                 ],
+                 "runtime_id": [
+                  42,
+                  658282,
+                  4,
+                  0,
+                  0,
+                  1021
+                 ],
+                 "value": "example.com",
+                 "value_readonly": false,
+                 "patterns": [
+                  "value"
+                 ],
+                 "children": []
+                },
+                {
+                 "name": "",
+                 "control_type": "Pane",
+                 "automation_id": "",
+                 "class_name": "PageActionContainerView",
+                 "enabled": true,
+                 "offscreen": false,
+                 "rect": [
+                  1769,
+                  64,
+                  31,
+                  31
+                 ],
+                 "runtime_id": [
+                  42,
+                  658282,
+                  4,
+                  0,
+                  0,
+                  1174
+                 ],
+                 "value": null,
+                 "value_readonly": true,
+                 "patterns": [],
+                 "children": [
+                  {
+                   "name": "Bookmark this tab",
+                   "control_type": "Button",
+                   "automation_id": "",
+                   "class_name": "PageActionView",
+                   "enabled": true,
+                   "offscreen": false,
+                   "rect": [
+                    1769,
+                    64,
+                    31,
+                    31
+                   ],
+                   "runtime_id": [
+                    42,
+                    658282,
+                    4,
+                    0,
+                    0,
+                    1364
+                   ],
+                   "value": null,
+                   "value_readonly": true,
+                   "patterns": [
+                    "invoke"
+                   ],
+                   "children": []
+                  }
+                 ]
+                }
+               ]
+              },
+              {
+               "name": "User",
+               "control_type": "Button",
+               "automation_id": "view_1018",
+               "class_name": "AvatarToolbarButton",
+               "enabled": true,
+               "offscreen": false,
+               "rect": [
+                1825,
+                58,
+                43,
+                43
+               ],
+               "runtime_id": [
+                42,
+                658282,
+                4,
+                0,
+                0,
+                985
+               ],
+               "value": null,
+               "value_readonly": true,
+               "patterns": [
+                "expand"
+               ],
+               "children": []
+              },
+              {
+               "name": "Chrome",
+               "control_type": "Button",
+               "automation_id": "view_1007",
+               "class_name": "BrowserAppMenuButton",
+               "enabled": true,
+               "offscreen": false,
+               "rect": [
+                1870,
+                58,
+                50,
+                43
+               ],
+               "runtime_id": [
+                42,
+                658282,
+                4,
+                0,
+                0,
+                995
+               ],
+               "value": null,
+               "value_readonly": true,
+               "patterns": [
+                "expand"
+               ],
+               "children": []
+              }
+             ]
+            }
+           ]
+          },
+          {
+           "name": "",
+           "control_type": "Pane",
+           "automation_id": "",
+           "class_name": "MultiContentsView",
+           "enabled": true,
+           "offscreen": false,
+           "rect": [
+            0,
+            108,
+            1920,
+            1033
+           ],
+           "runtime_id": [
+            42,
+            658282,
+            4,
+            0,
+            0,
+            756
+           ],
+           "value": null,
+           "value_readonly": true,
+           "patterns": [],
+           "children": [
+            {
+             "name": "",
+             "control_type": "Pane",
+             "automation_id": "",
+             "class_name": "Chrome_WidgetWin_1",
+             "enabled": true,
+             "offscreen": false,
+             "rect": [
+              0,
+              109,
+              1920,
+              1032
+             ],
+             "runtime_id": [
+              42,
+              658282,
+              4,
+              0,
+              0,
+              760
+             ],
+             "value": null,
+             "value_readonly": true,
+             "patterns": [],
+             "children": [
+              {
+               "name": "",
+               "control_type": "Pane",
+               "automation_id": "",
+               "class_name": "View",
+               "enabled": true,
+               "offscreen": false,
+               "rect": [
+                0,
+                0,
+                0,
+                0
+               ],
+               "runtime_id": [
+                42,
+                658282,
+                4,
+                0,
+                0,
+                762
+               ],
+               "value": null,
+               "value_readonly": true,
+               "patterns": [],
+               "children": []
+              },
+              {
+               "name": "Example Domain",
+               "control_type": "Document",
+               "automation_id": "RootWebArea",
+               "class_name": "",
+               "enabled": true,
+               "offscreen": false,
+               "rect": [
+                0,
+                109,
+                1920,
+                1032
+               ],
+               "runtime_id": [
+                42,
+                4590868,
+                4,
+                141,
+                8,
+                2
+               ],
+               "value": "https://example.com/",
+               "value_readonly": true,
+               "patterns": [
+                "value"
+               ],
+               "children": [
+                {
+                 "name": "This domain is for use in documentation examples without needing permission. This is not a service; avoid relying on it for testing and monitoring purposes.",
+                 "control_type": "Text",
+                 "automation_id": "",
+                 "class_name": "",
+                 "enabled": true,
+                 "offscreen": false,
+                 "rect": [
+                  702,
+                  389,
+                  516,
+                  91
+                 ],
+                 "runtime_id": [
+                  42,
+                  4590868,
+                  4,
+                  141,
+                  8,
+                  1
+                 ],
+                 "value": null,
+                 "value_readonly": true,
+                 "patterns": [],
+                 "children": []
+                },
+                {
+                 "name": "هذا النطاق مُخصص للاستخدام في أمثلة التوثيق دون الحاجة إلى إذن. هذه ليست خدمة، يُرجى تجنب الاعتماد عليها لأغراض الاختبار والمراقبة.",
+                 "control_type": "Text",
+                 "automation_id": "",
+                 "class_name": "",
+                 "enabled": true,
+                 "offscreen": false,
+                 "rect": [
+                  714,
+                  505,
+                  492,
+                  51
+                 ],
+                 "runtime_id": [
+                  42,
+                  4590868,
+                  4,
+                  141,
+                  8,
+                  27
+                 ],
+                 "value": null,
+                 "value_readonly": true,
+                 "patterns": [],
+                 "children": []
+                },
+                {
+                 "name": "该域名仅用于文档示例，无需获得许可。这并非一项服务，请勿将其用于测试和监控目的。",
+                 "control_type": "Text",
+                 "automation_id": "",
+                 "class_name": "",
+                 "enabled": true,
+                 "offscreen": false,
+                 "rect": [
+                  706,
+                  578,
+                  508,
+                  52
+                 ],
+                 "runtime_id": [
+                  42,
+                  4590868,
+                  4,
+                  141,
+                  8,
+                  28
+                 ],
+                 "value": null,
+                 "value_readonly": true,
+                 "patterns": [],
+                 "children": []
+                },
+                {
+                 "name": "L’usage de ce domaine est réservé à des exemples de documentation, sans autorisation préalable. Il ne s’agit pas d’un service ; son utilisation à des fins de test ou de surveillance est à éviter.",
+                 "control_type": "Text",
+                 "automation_id": "",
+                 "class_name": "",
+                 "enabled": true,
+                 "offscreen": false,
+                 "rect": [
+                  713,
+                  652,
+                  494,
+                  107
+                 ],
+                 "runtime_id": [
+                  42,
+                  4590868,
+                  4,
+                  141,
+                  8,
+                  29
+                 ],
+                 "value": null,
+                 "value_readonly": true,
+                 "patterns": [],
+                 "children": []
+                },
+                {
+                 "name": "Данный домен предназначен для использования в примерах документации без необходимости получения предварительного разрешения. Это не сервис; не рекомендуется его использование для тестирования и мониторинга.",
+                 "control_type": "Text",
+                 "automation_id": "",
+                 "class_name": "",
+                 "enabled": true,
+                 "offscreen": false,
+                 "rect": [
+                  711,
+                  781,
+                  498,
+                  136
+                 ],
+                 "runtime_id": [
+                  42,
+                  4590868,
+                  4,
+                  141,
+                  8,
+                  30
+                 ],
+                 "value": null,
+                 "value_readonly": true,
+                 "patterns": [],
+                 "children": []
+                },
+                {
+                 "name": "Este dominio está destinado al uso en ejemplos de documentación sin necesidad de permiso. Esto no es un servicio; evitar utilizarlo para realizar pruebas o monitoreos.",
+                 "control_type": "Text",
+                 "automation_id": "",
+                 "class_name": "",
+                 "enabled": true,
+                 "offscreen": false,
+                 "rect": [
+                  702,
+                  939,
+                  516,
+                  79
+                 ],
+                 "runtime_id": [
+                  42,
+                  4590868,
+                  4,
+                  141,
+                  8,
+                  31
+                 ],
+                 "value": null,
+                 "value_readonly": true,
+                 "patterns": [],
+                 "children": []
+                },
+                {
+                 "name": "Learn more",
+                 "control_type": "Hyperlink",
+                 "automation_id": "",
+                 "class_name": "",
+                 "enabled": true,
+                 "offscreen": false,
+                 "rect": [
+                  909,
+                  1040,
+                  102,
+                  28
+                 ],
+                 "runtime_id": [
+                  42,
+                  4590868,
+                  4,
+                  141,
+                  8,
+                  18
+                 ],
+                 "value": "https://iana.org/help/example-domains",
+                 "value_readonly": true,
+                 "patterns": [
+                  "invoke",
+                  "value"
+                 ],
+                 "children": []
+                }
+               ]
+              }
+             ]
+            },
+            {
+             "name": "",
+             "control_type": "Pane",
+             "automation_id": "",
+             "class_name": "ContentsSeparator",
+             "enabled": true,
+             "offscreen": false,
+             "rect": [
+              0,
+              108,
+              1920,
+              2
+             ],
+             "runtime_id": [
+              42,
+              658282,
+              4,
+              0,
+              0,
+              815
+             ],
+             "value": null,
+             "value_readonly": true,
+             "patterns": [],
+             "children": []
+            }
+           ]
+          },
+          {
+           "name": "",
+           "control_type": "Pane",
+           "automation_id": "",
+           "class_name": "HorizontalTabStripRegionViewOld",
+           "enabled": true,
+           "offscreen": false,
+           "rect": [
+            0,
+            0,
+            1749,
+            52
+           ],
+           "runtime_id": [
+            42,
+            658282,
+            4,
+            0,
+            0,
+            833
+           ],
+           "value": null,
+           "value_readonly": true,
+           "patterns": [],
+           "children": [
+            {
+             "name": "",
+             "control_type": "Pane",
+             "automation_id": "",
+             "class_name": "TabStripComboButton",
+             "enabled": true,
+             "offscreen": false,
+             "rect": [
+              8,
+              0,
+              36,
+              52
+             ],
+             "runtime_id": [
+              42,
+              658282,
+              4,
+              0,
+              0,
+              839
+             ],
+             "value": null,
+             "value_readonly": true,
+             "patterns": [],
+             "children": [
+              {
+               "name": "Tab search",
+               "control_type": "Button",
+               "automation_id": "",
+               "class_name": "TabStripFlatEdgeButton",
+               "enabled": true,
+               "offscreen": false,
+               "rect": [
+                8,
+                8,
+                36,
+                36
+               ],
+               "runtime_id": [
+                42,
+                658282,
+                4,
+                0,
+                0,
+                834
+               ],
+               "value": null,
+               "value_readonly": true,
+               "patterns": [
+                "expand"
+               ],
+               "children": []
+              }
+             ]
+            },
+            {
+             "name": "",
+             "control_type": "Pane",
+             "automation_id": "view_21",
+             "class_name": "TabStrip",
+             "enabled": true,
+             "offscreen": false,
+             "rect": [
+              35,
+              0,
+              320,
+              52
+             ],
+             "runtime_id": [
+              42,
+              658282,
+              4,
+              0,
+              0,
+              859
+             ],
+             "value": null,
+             "value_readonly": true,
+             "patterns": [],
+             "children": [
+              {
+               "name": "",
+               "control_type": "Tab",
+               "automation_id": "",
+               "class_name": "TabContainerImpl",
+               "enabled": true,
+               "offscreen": false,
+               "rect": [
+                35,
+                0,
+                320,
+                52
+               ],
+               "runtime_id": [
+                42,
+                658282,
+                4,
+                0,
+                0,
+                1374
+               ],
+               "value": null,
+               "value_readonly": true,
+               "patterns": [],
+               "children": [
+                {
+                 "name": "Example Domain",
+                 "control_type": "TabItem",
+                 "automation_id": "view_20",
+                 "class_name": "Tab",
+                 "enabled": true,
+                 "offscreen": false,
+                 "rect": [
+                  35,
+                  0,
+                  320,
+                  52
+                 ],
+                 "runtime_id": [
+                  42,
+                  658282,
+                  4,
+                  0,
+                  0,
+                  1631
+                 ],
+                 "value": null,
+                 "value_readonly": true,
+                 "patterns": [
+                  "select"
+                 ],
+                 "children": [
+                  {
+                   "name": "Close",
+                   "control_type": "Button",
+                   "automation_id": "",
+                   "class_name": "TabCloseButton",
+                   "enabled": true,
+                   "offscreen": false,
+                   "rect": [
+                    305,
+                    9,
+                    33,
+                    34
+                   ],
+                   "runtime_id": [
+                    42,
+                    658282,
+                    4,
+                    0,
+                    0,
+                    1636
+                   ],
+                   "value": null,
+                   "value_readonly": true,
+                   "patterns": [
+                    "invoke"
+                   ],
+                   "children": []
+                  }
+                 ]
+                }
+               ]
+              },
+              {
+               "name": "",
+               "control_type": "Pane",
+               "automation_id": "",
+               "class_name": "TabStrip::TabDragContextImpl",
+               "enabled": true,
+               "offscreen": false,
+               "rect": [
+                35,
+                0,
+                320,
+                52
+               ],
+               "runtime_id": [
+                42,
+                658282,
+                4,
+                0,
+                0,
+                860
+               ],
+               "value": null,
+               "value_readonly": true,
+               "patterns": [],
+               "children": []
+              }
+             ]
+            },
+            {
+             "name": "New Tab",
+             "control_type": "Button",
+             "automation_id": "",
+             "class_name": "TabStripControlButton",
+             "enabled": true,
+             "offscreen": false,
+             "rect": [
+              348,
+              0,
+              36,
+              52
+             ],
+             "runtime_id": [
+              42,
+              658282,
+              4,
+              0,
+              0,
+              861
+             ],
+             "value": null,
+             "value_readonly": true,
+             "patterns": [
+              "invoke"
+             ],
+             "children": []
+            },
+            {
+             "name": "",
+             "control_type": "Pane",
+             "automation_id": "",
+             "class_name": "FrameGrabHandle",
+             "enabled": true,
+             "offscreen": false,
+             "rect": [
+              398,
+              0,
+              1187,
+              52
+             ],
+             "runtime_id": [
+              42,
+              658282,
+              4,
+              0,
+              0,
+              866
+             ],
+             "value": null,
+             "value_readonly": true,
+             "patterns": [],
+             "children": []
+            },
+            {
+             "name": "",
+             "control_type": "Pane",
+             "automation_id": "",
+             "class_name": "TabStripActionContainer",
+             "enabled": true,
+             "offscreen": false,
+             "rect": [
+              1584,
+              0,
+              166,
+              50
+             ],
+             "runtime_id": [
+              42,
+              658282,
+              4,
+              0,
+              0,
+              842
+             ],
+             "value": null,
+             "value_readonly": true,
+             "patterns": [],
+             "children": [
+              {
+               "name": "Open Gemini in Chrome",
+               "control_type": "Button",
+               "automation_id": "",
+               "class_name": "TabStripGlicButton",
+               "enabled": true,
+               "offscreen": false,
+               "rect": [
+                1584,
+                0,
+                151,
+                50
+               ],
+               "runtime_id": [
+                42,
+                658282,
+                4,
+                0,
+                0,
+                848
+               ],
+               "value": null,
+               "value_readonly": true,
+               "patterns": [
+                "invoke"
+               ],
+               "children": []
+              },
+              {
+               "name": "",
+               "control_type": "Pane",
+               "automation_id": "",
+               "class_name": "FrameSeparator",
+               "enabled": true,
+               "offscreen": false,
+               "rect": [
+                1736,
+                15,
+                3,
+                20
+               ],
+               "runtime_id": [
+                42,
+                658282,
+                4,
+                0,
+                0,
+                858
+               ],
+               "value": null,
+               "value_readonly": true,
+               "patterns": [],
+               "children": []
+              }
+             ]
+            }
+           ]
+          },
+          {
+           "name": "",
+           "control_type": "Pane",
+           "automation_id": "",
+           "class_name": "View",
+           "enabled": true,
+           "offscreen": false,
+           "rect": [
+            0,
+            0,
+            0,
+            0
+           ],
+           "runtime_id": [
+            42,
+            658282,
+            4,
+            0,
+            0,
+            899
+           ],
+           "value": null,
+           "value_readonly": true,
+           "patterns": [],
+           "children": []
+          }
+         ]
+        }
+       ]
+      }
+     ]
+    }
+   ]
+  }
+ ]
+}

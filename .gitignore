@@ -2,6 +2,7 @@
 # typed text). Each fixture is ignored until reviewed, then allowlisted here.
 tests/fixtures/*
 !tests/fixtures/notepad.json
+!tests/fixtures/chrome.json
 
 # Runtime state (last tree read)
 .pixel/
