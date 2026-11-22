@@ -7,6 +7,22 @@ never call chain()/reply()).
 
 llm's Python API does not write to logs.db (only its CLI does), so screen text
 sent here is not stored by llm.
+
+Layout of this file:
+    StepRequest / ModelReply / Attempt / ModelError   the data passed around
+    LlmModel          one model: sends one prompt, returns the tool calls
+    _compat_model     builds a Groq / Ollama model on llm's OpenAI-compatible client
+    classify()        sorts an error into a kind (rate_limit, timeout, ...)
+    Provider, Chain   the fallback chain: try each provider in order
+    FailingModel      fake failures for --simulate-fail (testing the chain)
+    from_config()     builds the Chain from config.toml [models]
+
+Fallback rules (Chain.next_action), by error kind:
+    rate_limit, overloaded, auth, bad_model  move on; skip that provider for the
+                                             rest of the run ("sticky")
+    network                                  retry the same provider once after
+                                             1 s, then move on
+    timeout, other                           move on; try it again next step
 """
 
 from __future__ import annotations
@@ -21,9 +37,10 @@ from pixel.tools import ToolSpec
 
 @dataclass
 class StepRequest:
-    system: str
-    prompt: str
-    tools: list[ToolSpec]
+    """Everything one model call needs. The same request is passed down the chain."""
+    system: str                # the system prompt (prompts/system.md)
+    prompt: str                # this step's prompt: task, history, current tree
+    tools: list[ToolSpec]      # the tool menu
     should_stop: Callable[[], bool] | None = None   # the chain checks it between attempts
 
 
@@ -31,13 +48,14 @@ class StepRequest:
 class Attempt:
     """One failed (or skipped) try at a provider during a step."""
     provider: str
-    kind: str
-    error: str
+    kind: str               # one of KINDS
+    error: str              # shortened error message
     seconds: float = 0.0
     skipped: bool = False   # not tried: it failed earlier in this run
     retried: bool = False   # the same provider was tried again right after this
 
     def as_dict(self) -> dict:
+        """JSON-friendly form for the action log (flags only included when True)."""
         d = {"provider": self.provider, "kind": self.kind, "error": self.error,
              "seconds": round(self.seconds, 2)}
         if self.skipped:
@@ -49,12 +67,13 @@ class Attempt:
 
 @dataclass
 class ModelReply:
+    """What came back from the model for one step."""
     calls: list[tuple[str, dict]] = field(default_factory=list)  # as returned, unvalidated
-    text: str = ""
-    model: str = ""
+    text: str = ""                                        # any plain text it wrote
+    model: str = ""                                       # the llm model id
     input_tokens: int | None = None
     output_tokens: int | None = None
-    thought_tokens: int | None = None
+    thought_tokens: int | None = None                     # Gemini "thinking" tokens, if reported
     seconds: float = 0.0
     provider: str = ""                                    # chain entry that answered
     attempts: list[Attempt] = field(default_factory=list)  # failures before the answer
@@ -77,9 +96,13 @@ def use_system_certs() -> None:
 
 
 class ModelAdapter(Protocol):
+    """The interface the loop depends on: a name and next_action(). Chain,
+    LlmModel, FailingModel and the tests' fake models all fit it."""
     name: str
 
-    def next_action(self, req: StepRequest) -> ModelReply: ...
+    def next_action(self, req: StepRequest) -> ModelReply:
+        """Send one step to the model; return its tool calls. Raise ModelError on failure."""
+        ...
 
 
 # ---------- one model ----------
@@ -94,6 +117,11 @@ def _compat_model(name: str, spec: dict):
     timeout = float(spec.get("timeout", 60))
 
     class CompatChat(Chat):
+        """llm's Chat with the openai client's timeout set and its retries off.
+
+        The openai client otherwise retries a 429 twice and waits up to 600 s,
+        which would hide rate limits from the chain and stall the run.
+        """
         def get_client(self, key, *, async_=False):
             return super().get_client(key, async_=async_).with_options(
                 timeout=timeout, max_retries=0)
@@ -102,6 +130,8 @@ def _compat_model(name: str, spec: dict):
     m = CompatChat(model_id=f"pixel-{name}", model_name=spec["model"],
                    api_base=spec["api_base"], supports_tools=True,
                    reasoning=bool(spec.get("reasoning", False)))
+    # Tell llm where to find the key: key store alias "groq", or env var GROQ_API_KEY.
+    # No key (Ollama): llm sends a dummy key, which Ollama ignores.
     key = spec.get("key")
     m.needs_key = key or None
     m.key_env_var = (spec.get("key_env") or f"{key.upper()}_API_KEY") if key else None
@@ -109,18 +139,23 @@ def _compat_model(name: str, spec: dict):
 
 
 class LlmModel:
-    """One llm model plus the options from config.toml."""
+    """One llm model plus the options from config.toml.
+
+    The llm library and the model are loaded lazily on the first call, so
+    building a Chain (and running tests with fakes) never touches the network.
+    """
 
     def __init__(self, model_id: str, options: dict | None = None, _llm=None, build=None,
                  local: bool = False):
         self.name = model_id
-        self.options = dict(options or {})
+        self.options = dict(options or {})   # passed to llm unchanged (thinking_level, temperature, ...)
         self.local = local
-        self._llm = _llm
+        self._llm = _llm         # tests inject a fake llm module here
         self._build = build      # returns an llm model; default: llm.get_model(model_id)
         self._model = None
 
     def _lib(self):
+        """The llm module, imported on first use (after switching to Windows certs)."""
         if self._llm is None:
             use_system_certs()
             import llm
@@ -128,6 +163,7 @@ class LlmModel:
         return self._llm
 
     def _get_model(self):
+        """The llm model object, created once. An unknown id becomes a ModelError."""
         if self._model is None:
             try:
                 lib = self._lib()
@@ -137,22 +173,31 @@ class LlmModel:
         return self._model
 
     def describe_options(self) -> str:
+        """"thinking_level=minimal, temperature=0", for the --verbose chain line."""
         return ", ".join(f"{k}={v}" for k, v in self.options.items() if k != "timeout")
 
     def next_action(self, req: StepRequest) -> ModelReply:
+        """One model call. Returns the tool calls it asked for, without running them.
+
+        Any exception from llm or the HTTP client is wrapped in ModelError,
+        with the original kept as __cause__ so classify() can inspect it.
+        """
         lib = self._lib()
         model = self._get_model()
+        # implementation=None: llm only describes the tools to the model, never runs them.
         tools = [lib.Tool(name=t.name, description=t.description,
                           input_schema=t.schema, implementation=None) for t in req.tools]
         t0 = time.perf_counter()
         try:
             response = model.prompt(req.prompt, system=req.system, tools=tools,
                                     options=dict(self.options))
+            # These calls are what actually wait for the HTTP response.
             calls = [(c.name, c.arguments) for c in response.tool_calls()]
             text = response.text() or ""
             usage = response.usage()
         except Exception as exc:  # noqa: BLE001
             raise ModelError(f"{self.name}: {type(exc).__name__}: {exc}") from exc
+        # Gemini reports thinking tokens in usage.details; other providers don't.
         details = getattr(usage, "details", None) or {}
         thoughts = details.get("thoughtsTokenCount") if isinstance(details, dict) else None
         return ModelReply(
@@ -172,9 +217,14 @@ RATE_LIMIT, OVERLOADED, TIMEOUT, NETWORK = "rate_limit", "overloaded", "timeout"
 AUTH, BAD_MODEL, OTHER = "auth", "bad_model", "other"
 KINDS = (RATE_LIMIT, OVERLOADED, TIMEOUT, NETWORK, AUTH, BAD_MODEL, OTHER)
 
+# Why these are sticky: retrying a rate limit burns quota; Gemini's "high demand"
+# has lasted hours; a bad key or model name won't fix itself mid-run.
 STICKY = {RATE_LIMIT, OVERLOADED, AUTH, BAD_MODEL}   # skip that provider for the rest of the run
+# Network blips (DNS, reset connections) are often gone a second later.
 RETRY_ONCE = {NETWORK}                               # try the same provider once more first
 
+# Message patterns, used when the exception itself has no status code or telling
+# class name. llm-gemini, for one, raises a bare ModelError("...high demand...").
 _MESSAGES = [  # checked in this order
     (RATE_LIMIT, r"quota|rate.?limit|resource.?exhausted|too many requests|\b429\b"),
     (AUTH, r"api.?key|no key found|unauthori[sz]ed|permission.?denied|\b40[13]\b"),
@@ -187,11 +237,13 @@ _MESSAGES = [  # checked in this order
 ]
 _MESSAGES = [(k, re.compile(p, re.IGNORECASE)) for k, p in _MESSAGES]
 
+# Exception class names (from httpx, openai, the stdlib) that mean "couldn't connect".
 _NETWORK_CLASSES = {"ConnectError", "APIConnectionError", "RemoteProtocolError", "NetworkError",
                     "ConnectionError", "gaierror"}
 
 
 def _status(e) -> int | None:
+    """The HTTP status code on an exception, if it has one (e.status_code or e.response.status_code)."""
     s = getattr(e, "status_code", None)
     if s is None:
         s = getattr(getattr(e, "response", None), "status_code", None)
@@ -199,6 +251,11 @@ def _status(e) -> int | None:
 
 
 def _by_type(e) -> str | None:
+    """Classify one exception by status code, then by class name. None if neither tells.
+
+    Class names are matched as strings along the class hierarchy (MRO) so
+    this works without importing openai or httpx, and tests can use fakes.
+    """
     s = _status(e)
     if s == 429:
         return RATE_LIMIT
@@ -228,6 +285,7 @@ def classify(exc: BaseException) -> str:
     """Sort a model failure into one of KINDS by duck typing: status codes and
     class names along the exception chain first, then the message text
     (llm-gemini raises a bare ModelError(message) with no status code)."""
+    # Collect the exception and what caused it (raise ... from ...), up to 6 deep.
     chain, e = [], exc
     while e is not None and len(chain) < 6:
         chain.append(e)
@@ -236,6 +294,7 @@ def classify(exc: BaseException) -> str:
         kind = _by_type(e)
         if kind:
             return kind
+    # Nothing structured: fall back to matching the combined messages.
     text = " ".join(str(e) for e in chain)
     for kind, rx in _MESSAGES:
         if rx.search(text):
@@ -244,6 +303,7 @@ def classify(exc: BaseException) -> str:
 
 
 def _short(s: str, n: int = 160) -> str:
+    """Collapse whitespace and cut to n characters (for error messages in the log)."""
     s = " ".join(s.split())
     return s if len(s) <= n else s[: n - 1] + "…"
 
@@ -252,11 +312,13 @@ def _short(s: str, n: int = 160) -> str:
 
 @dataclass
 class Provider:
+    """One entry in the chain: its config name, its model, and whether it runs locally."""
     name: str              # the key in [models.providers]
     model: ModelAdapter
     local: bool = False
 
     def describe(self) -> str:
+        """"groq (openai/gpt-oss-120b, reasoning_effort=low, temperature=0)", for --verbose."""
         opts = getattr(self.model, "describe_options", lambda: "")()
         bits = [getattr(self.model, "name", "?")] + ([opts] if opts else []) + \
                (["local"] if self.local else [])
@@ -271,6 +333,7 @@ class Chain:
 
     def __init__(self, providers: list[Provider], *, sleep=time.sleep, retry_delay: float = 1.0,
                  clock=time.perf_counter):
+        # sleep and clock are injectable so tests run instantly with fake time.
         if not providers:
             raise ModelError("the model chain is empty")
         self.providers = providers
@@ -281,6 +344,7 @@ class Chain:
         self.clock = clock
 
     def describe(self) -> str:
+        """Every provider with its model and options, for the --verbose header."""
         return " > ".join(p.describe() for p in self.providers)
 
     def recipients(self) -> str:
@@ -291,15 +355,23 @@ class Chain:
         return f"{names[0]} (falling back to {', then '.join(names[1:])})"
 
     def next_action(self, req: StepRequest) -> ModelReply:
+        """Try each provider in order until one answers.
+
+        Returns the first successful reply, with .provider set to who answered
+        and .attempts listing every failure or skip before it. Raises
+        ModelError (carrying the attempts) if all fail, or "stopped" if the
+        kill hotkey was pressed between attempts.
+        """
         attempts: list[Attempt] = []
         stop = req.should_stop or (lambda: False)
         for p in self.providers:
+            # Sticky failure earlier in this run: record the skip, don't call it.
             if p.name in self.down:
                 attempts.append(Attempt(p.name, self.down[p.name],
                                         "failed earlier this run", skipped=True))
                 continue
             tries = 0
-            while True:
+            while True:   # loops at most twice: the call, plus one network retry
                 if stop():
                     raise ModelError("stopped", attempts)
                 t0 = self.clock()
@@ -313,19 +385,21 @@ class Chain:
                         tries += 1
                         a.retried = True
                         self.sleep(self.retry_delay)
-                        continue
+                        continue          # same provider again
                     if kind in STICKY:
                         self.down[p.name] = kind
-                    break
+                    break                 # next provider
                 reply.provider = p.name
                 reply.attempts = attempts
                 return reply
+        # Everyone failed. List each provider's final failure (not the retried ones).
         tried = [f"{a.provider}: {a.kind}" for a in attempts if not a.retried]
         raise ModelError("all providers failed (" + "; ".join(tried) + ")", attempts)
 
 
 # ---------- simulated failures (pixel run --simulate-fail) ----------
 
+# What each simulated failure looks like, so it goes through classify() like a real one.
 _SIM_STATUS = {RATE_LIMIT: 429, OVERLOADED: 503, AUTH: 401, BAD_MODEL: 404}
 _SIM_TEXT = {RATE_LIMIT: "429 rate limit", OVERLOADED: "503 high demand", AUTH: "401 bad API key",
              BAD_MODEL: "404 model not found", TIMEOUT: "read timed out",
@@ -333,6 +407,8 @@ _SIM_TEXT = {RATE_LIMIT: "429 rate limit", OVERLOADED: "503 high demand", AUTH: 
 
 
 class SimulatedFailure(Exception):
+    """A fake provider error carrying the status code a real one would have."""
+
     def __init__(self, kind: str):
         self.status_code = _SIM_STATUS.get(kind)
         super().__init__(f"simulated {_SIM_TEXT[kind]}")
@@ -345,14 +421,16 @@ class FailingModel:
     def __init__(self, inner, kind: str = RATE_LIMIT, start: int = 1):
         self.inner, self.kind, self.start = inner, kind, start
         self.name = inner.name
-        self.calls = 0
+        self.calls = 0   # how many times next_action has been called
 
     def describe_options(self) -> str:
+        """The wrapped model's options plus a note that failures are simulated."""
         opts = getattr(self.inner, "describe_options", lambda: "")()
         sim = f"simulated {self.kind} from call {self.start}"
         return f"{opts}, {sim}" if opts else sim
 
     def next_action(self, req: StepRequest) -> ModelReply:
+        """Calls before N go to the real model; from call N on, raise the fake error."""
         self.calls += 1
         if self.calls >= self.start:
             raise ModelError(f"{self.name}: simulated {_SIM_TEXT[self.kind]}") \
@@ -376,6 +454,13 @@ def parse_simulate(text: str) -> tuple[str, str, int]:
 # ---------- config ----------
 
 def _provider(name: str, spec: dict, llm_lib=None) -> Provider:
+    """Build one Provider from its [models.providers.<name>] table.
+
+    With api_base: an OpenAI-compatible endpoint (Groq, Ollama) via
+    _compat_model. Without: a model from an llm plugin (Gemini), looked up
+    by id; its timeout goes in as an option, because that's how
+    llm-gemini accepts it.
+    """
     if not isinstance(spec, dict) or not spec.get("model"):
         raise ModelError(f"config.toml: [models.providers.{name}] needs model = \"...\"")
     options = dict(spec.get("options") or {})
@@ -392,7 +477,11 @@ def _provider(name: str, spec: dict, llm_lib=None) -> Provider:
 
 def from_config(cfg: dict, simulate: list[str] | tuple = (), llm_lib=None) -> Chain:
     """cfg is config.models(): {"chain": [names], "providers": {name: {...}}}.
-    `simulate` holds --simulate-fail values."""
+    `simulate` holds --simulate-fail values.
+
+    Checks the config first (chain not empty, every name has a table, no
+    duplicates) so mistakes show up as one clear error before the run starts.
+    """
     names = cfg.get("chain") or []
     if not names:
         raise ModelError("config.toml has no [models] chain = [\"...\"] entry")
@@ -405,6 +494,7 @@ def from_config(cfg: dict, simulate: list[str] | tuple = (), llm_lib=None) -> Ch
         raise ModelError("config.toml: a provider appears twice in [models] chain")
     providers = [_provider(n, providers_cfg[n], llm_lib) for n in names]
 
+    # Wrap any provider named in --simulate-fail so it fails on cue.
     by_name = {p.name: p for p in providers}
     for s in simulate:
         name, kind, start = parse_simulate(s)

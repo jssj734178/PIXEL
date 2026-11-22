@@ -3,6 +3,22 @@
 
 Keystrokes only go out after the foreground guard confirms the window from the
 last tree read is the one in front.
+
+Tools (plus scroll and read_text added in M2):
+    get_focused_window  which window is in front
+    get_ui_tree         read + prune a window's tree, numbering elements [1], [2], ...
+    click_element       activate an element by ID
+    type_text           put text into an element by ID
+    send_keys           send a shortcut like ctrl+s to the last-read window
+    scroll              scroll the container of an element by one page
+    read_text           the full text of an element
+    open_app            launch or focus an app from the [apps.*] allowlist
+
+General strategy: prefer UI Automation patterns (Invoke, Value, Scroll, ...),
+which act on the element directly and don't care what window is in front.
+Only fall back to real keystrokes or mouse input when there is no pattern,
+and then only after checking that the right window is in front and that
+nothing is covering the target.
 """
 
 from __future__ import annotations
@@ -15,8 +31,11 @@ from pixel.bridge import state, win
 from pixel.bridge.prune import estimate_tokens, prune, render
 
 CHUNK = 20                       # characters typed between foreground checks
+# Characters pywinauto's send_keys treats as syntax; they must be escaped as {x}.
 _PYWINAUTO_SPECIAL = set("+^%~(){}[]")
+# Modifier names -> pywinauto prefix symbols (^ = ctrl, % = alt, + = shift).
 _MODIFIERS = {"ctrl": "^", "control": "^", "alt": "%", "shift": "+"}
+# Named keys the model may use -> pywinauto {NAME} codes.
 _NAMED = {
     "enter": "ENTER", "return": "ENTER", "esc": "ESC", "escape": "ESC",
     "tab": "TAB", "space": "SPACE", "backspace": "BACKSPACE",
@@ -32,16 +51,19 @@ _SINGLE = set("abcdefghijklmnopqrstuvwxyz0123456789`-=[]\\;',./")
 
 
 class KeyError_(ValueError):
+    """A key name in a shortcut was not understood (trailing _ avoids the builtin KeyError)."""
     pass
 
 
 def _fail(msg: str, **extra) -> dict:
+    """The standard failure result: {"ok": False, "error": msg, ...extra fields}."""
     return {"ok": False, "error": msg, **extra}
 
 
 # ---------- key translation ----------
 
 def _escape_char(ch: str) -> str:
+    """Wrap a pywinauto syntax character in braces so it is typed literally."""
     return "{" + ch + "}" if ch in _PYWINAUTO_SPECIAL else ch
 
 
@@ -75,14 +97,22 @@ def translate_keys(keys: str) -> str:
 
 
 def escape_text(text: str) -> str:
-    """Make text literal for pywinauto: no character acts as a shortcut."""
+    """Make text literal for pywinauto: no character acts as a shortcut.
+
+    Also normalizes Windows (\\r\\n) and old Mac (\\r) line endings to \\n.
+    """
     return "".join(_escape_char(c) for c in text.replace("\r\n", "\n").replace("\r", "\n"))
 
 
 # ---------- foreground guard ----------
 
 def check_foreground(target: dict | None) -> str | None:
-    """None if the last-read window is in front, else an error message."""
+    """None if the last-read window is in front, else an error message.
+
+    This is what stops keystrokes landing in the wrong app (say, a chat window
+    you clicked into mid-run). It compares both the main window and the
+    process id, so a same-titled window from another program doesn't pass.
+    """
     if not target or not target.get("handle"):
         return "no tree read yet, run `pixel tree` first"
     if not win.is_window(target["handle"]):
@@ -95,6 +125,11 @@ def check_foreground(target: dict | None) -> str | None:
 
 
 def _send(seq: str, *, literal: bool) -> None:
+    """Send a pywinauto key sequence.
+
+    literal=True for typed text: spaces, tabs and newlines are typed as-is and
+    vk_packet sends Unicode characters directly. literal=False for shortcuts.
+    """
     from pywinauto import keyboard
     keyboard.send_keys(seq, pause=0.01, with_spaces=literal, with_tabs=literal,
                        with_newlines=literal, vk_packet=literal)
@@ -103,7 +138,14 @@ def _send(seq: str, *, literal: bool) -> None:
 # ---------- element lookup ----------
 
 def _resolve(eid: int):
-    """Find the live UIA element for an ID from the last read, or explain why not."""
+    """Find the live UIA element for an ID from the last read, or explain why not.
+
+    Re-reads the window and looks the element up by its runtime id. If it is
+    gone, or its type or name changed (the UI moved on), the ID is "stale"
+    and we refuse to act, rather than clicking whatever now sits there.
+    Returns (window dict, saved element dict, live UIA element).
+    Raises LookupError with a message meant for the user or model.
+    """
     from pywinauto.uia_defines import IUIA
     from pixel.bridge.capture import capture_window
 
@@ -123,6 +165,7 @@ def _resolve(eid: int):
     stale = f"stale ID {eid} ({loc['control_type']} '{loc['name']}'), run `pixel tree` again"
     if el is None:
         raise LookupError(stale)
+    # Staleness check: same runtime id but a different control means it was reused.
     ctype = IUIA().known_control_type_ids.get(el.CurrentControlType, "Unknown")
     if ctype != loc["control_type"] or (el.CurrentName or "") != loc["name"]:
         raise LookupError(stale)
@@ -130,12 +173,17 @@ def _resolve(eid: int):
 
 
 def _describe(loc: dict) -> str:
+    """"Button 'Save'": how an element is named in results and messages."""
     return f"{loc['control_type']} '{loc['name'] or loc['automation_id']}'"
 
 
 # ---------- tools ----------
 
 def get_focused_window() -> dict:
+    """The main window currently in front: {"ok", "title", "process", "pid", "handle"}.
+
+    A dialog or popup reports its owning main window.
+    """
     try:
         fg = win.foreground_info()
         info = win.window_info(fg["root"]) if fg["root"] else fg
@@ -148,13 +196,21 @@ def get_focused_window() -> dict:
 def get_ui_tree(window: str | None = None, *, handle: int | None = None,
                 max_depth: int | None = None, max_elements: int | None = None,
                 include_raw: bool = False) -> dict:
-    """Read one window: by handle, by title/process substring, or the focused one."""
+    """Read one window: by handle, by title/process substring, or the focused one.
+
+    Captures the raw tree, prunes it, renders the text the model sees, and
+    saves the ID -> element map (state.save) so later actions can find them.
+    Returns "text" plus size stats for --verbose, and "labels" ({id: "Button
+    'Save'"}) used by confirm prompts and the safety checks.
+    include_raw=True also returns the raw tree (for saving test fixtures).
+    """
     from pixel.bridge.capture import capture_window
 
     cfg = config.bridge()
     max_depth = max_depth or cfg["max_depth"]
     max_elements = max_elements or cfg["max_elements"]
     try:
+        # Pick the window to read.
         if handle:
             if not win.is_window(handle):
                 return _fail(f"window {handle} is gone")
@@ -197,6 +253,14 @@ def get_ui_tree(window: str | None = None, *, handle: int | None = None,
 
 
 def click_element(id: int) -> dict:  # noqa: A002 - name fixed by the tool menu
+    """Activate an element. Tries UIA patterns first, a real mouse click last.
+
+    Order: Invoke (buttons, links, menu items), Toggle (checkboxes),
+    SelectionItem (tabs, list items), ExpandCollapse (combo boxes, tree
+    nodes). The result's "method" says which one worked. A mouse click is the
+    fallback, and only when the element has a size and no other window covers
+    its centre.
+    """
     from pywinauto.uia_defines import NoPatternInterfaceError, get_elem_interface
 
     try:
@@ -207,11 +271,13 @@ def click_element(id: int) -> dict:  # noqa: A002 - name fixed by the tool menu
         return _fail(f"could not find element {id}: {exc}")
 
     def expand(p):
+        """Expand if collapsed, otherwise collapse (a click toggles it)."""
         if p.CurrentExpandCollapseState == 0:  # collapsed
             p.Expand()
         else:
             p.Collapse()
 
+    # (result method name, UIA pattern, what to do with it)
     attempts = [
         ("invoke", "Invoke", lambda p: p.Invoke()),
         ("toggle", "Toggle", lambda p: p.Toggle()),
@@ -223,7 +289,7 @@ def click_element(id: int) -> dict:  # noqa: A002 - name fixed by the tool menu
         try:
             iface = get_elem_interface(el, pattern)
         except NoPatternInterfaceError:
-            continue
+            continue   # element doesn't support this pattern; try the next
         try:
             act(iface)
             return {"ok": True, "method": method, "target": _describe(loc)}
@@ -249,11 +315,21 @@ def click_element(id: int) -> dict:  # noqa: A002 - name fixed by the tool menu
 
 
 def _norm(s: str) -> str:
+    """Normalize line endings so a read-back value compares equal to what we set."""
     return (s or "").replace("\r\n", "\n").replace("\r", "\n")
 
 
 def type_text(id: int, text: str, should_stop=None) -> dict:  # noqa: A002
-    """should_stop: optional callable, checked between keystroke chunks (kill hotkey)."""
+    """should_stop: optional callable, checked between keystroke chunks (kill hotkey).
+
+    Two methods:
+    1. ValuePattern.SetValue: sets the whole field at once with no keystrokes,
+       so it can't land in the wrong window. It REPLACES the field's content.
+       We read the value back to confirm it took.
+    2. Keystrokes, CHUNK characters at a time, re-checking before every chunk
+       that the right window is still in front and the kill hotkey wasn't
+       pressed. If SetValue half-worked, select-all first so we replace too.
+    """
     from pywinauto.uia_defines import NoPatternInterfaceError, get_elem_interface
 
     try:
@@ -263,8 +339,8 @@ def type_text(id: int, text: str, should_stop=None) -> dict:  # noqa: A002
     except Exception as exc:  # noqa: BLE001
         return _fail(f"could not find element {id}: {exc}")
 
-    replace = False
-    note = None
+    replace = False   # True: select all before typing, so keystrokes replace the field
+    note = None       # explanation shown with the result when we had to fall back
     # 1. UI Automation ValuePattern: no keystrokes, focus does not matter.
     try:
         vp = get_elem_interface(el, "Value")
@@ -292,7 +368,7 @@ def type_text(id: int, text: str, should_stop=None) -> dict:  # noqa: A002
     if err:
         return _fail(f"{err}; nothing was sent", method="keys", chars=0)
     if replace:
-        _send("^a", literal=False)
+        _send("^a", literal=False)   # ctrl+a
 
     sent = 0
     for start in range(0, len(text), CHUNK):
@@ -314,6 +390,10 @@ def type_text(id: int, text: str, should_stop=None) -> dict:  # noqa: A002
 
 
 def send_keys(keys: str) -> dict:
+    """Send a shortcut ("ctrl+s", "alt+f enter") to the window from the last read.
+
+    Refuses if that window isn't in front, so the keys can't reach another app.
+    """
     try:
         seq = translate_keys(keys)
     except ValueError as exc:
@@ -329,13 +409,22 @@ def send_keys(keys: str) -> dict:
     return {"ok": True, "sent": keys.strip().lower()}
 
 
+# direction -> (axis: v=vertical, h=horizontal; sign: -1 back, +1 forward)
 _SCROLL_DIRS = {"up": ("v", -1), "down": ("v", 1), "left": ("h", -1), "right": ("h", 1)}
 SCROLL_WALK_UP = 8          # levels above the element searched for a ScrollPattern
 READ_LIMIT = 2000           # characters returned by read_text
 
 
 def scroll(id: int, direction: str) -> dict:  # noqa: A002
-    """Scroll the nearest scrollable container of an element by one page."""
+    """Scroll the nearest scrollable container of an element by one page.
+
+    1. Walk up from the element (at most SCROLL_WALK_UP levels, never past the
+       window) to the first ancestor with ScrollPattern, and scroll that by a
+       "large increment" (one page). Reports the scroll % before and after;
+       "at_edge" is True when it was already at the end.
+    2. Otherwise, for up/down only, turn the mouse wheel over the element,
+       with the same covered-window check as click.
+    """
     from pywinauto import uia_defines as ud
 
     direction = (direction or "").strip().lower()
@@ -362,7 +451,7 @@ def scroll(id: int, direction: str) -> dict:  # noqa: A002
             except ud.NoPatternInterfaceError:
                 pass
             if iuia.CompareElements(node, window_el):
-                break
+                break   # reached the window itself: stop climbing
             node = iuia.ControlViewWalker.GetParentElement(node)
             if not node:
                 break
@@ -381,10 +470,12 @@ def scroll(id: int, direction: str) -> dict:  # noqa: A002
                 return {"ok": True, "method": "pattern", "direction": direction,
                         "at_edge": True, "note": f"nothing to scroll {direction}"}
             before = pct()
+            # Already at the top/bottom: report it instead of scrolling.
             if (sign > 0 and before >= 100) or (sign < 0 and before <= 0):
                 return {"ok": True, "method": "pattern", "direction": direction,
                         "before": round(before), "after": round(before), "at_edge": True}
             amount = ud.scroll_large_increment if sign > 0 else ud.scroll_large_decrement
+            # Scroll(horizontal amount, vertical amount)
             if axis == "v":
                 sp.Scroll(ud.scroll_no_amount, amount)
             else:
@@ -409,14 +500,19 @@ def scroll(id: int, direction: str) -> dict:  # noqa: A002
         if win.top_window_at(cx, cy) != win.root_owner(target["handle"]):
             return _fail(f"{_describe(loc)} is covered by another window; nothing was scrolled")
         from pywinauto import mouse
-        mouse.scroll(coords=(cx, cy), wheel_dist=-3 if sign > 0 else 3)
+        mouse.scroll(coords=(cx, cy), wheel_dist=-3 if sign > 0 else 3)   # negative = down
         return {"ok": True, "method": "wheel", "direction": direction}
     except Exception as exc:  # noqa: BLE001
         return _fail(f"could not scroll {_describe(loc)}: {exc}")
 
 
 def read_text(id: int) -> dict:  # noqa: A002
-    """Text of an element: ValuePattern, then TextPattern, then its name."""
+    """Text of an element: ValuePattern, then TextPattern, then its name.
+
+    The tree only shows 80 characters of a field; this returns up to
+    READ_LIMIT (2,000), with "truncated" set if there was more. "source" says
+    where the text came from.
+    """
     from pywinauto.uia_defines import NoPatternInterfaceError, get_elem_interface
 
     try:
@@ -431,7 +527,7 @@ def read_text(id: int) -> dict:  # noqa: A002
         except NoPatternInterfaceError:
             try:
                 rng = get_elem_interface(el, "Text").DocumentRange
-                text, source = rng.GetText(READ_LIMIT + 1) or "", "text"
+                text, source = rng.GetText(READ_LIMIT + 1) or "", "text"   # +1 to detect truncation
             except NoPatternInterfaceError:
                 text, source = el.CurrentName or "", "name"
     except Exception as exc:  # noqa: BLE001
@@ -441,11 +537,16 @@ def read_text(id: int) -> dict:  # noqa: A002
 
 
 def _bring_to_front(hwnd: int) -> bool:
+    """Try to make a window the foreground window. Returns True if it worked.
+
+    Windows often refuses SetForegroundWindow from a background process, so
+    if that fails we try UIA SetFocus as a second route.
+    """
     import win32con
     import win32gui
 
     try:
-        if win32gui.IsIconic(hwnd):
+        if win32gui.IsIconic(hwnd):     # minimized: restore it first
             win32gui.ShowWindow(hwnd, win32con.SW_RESTORE)
         win32gui.SetForegroundWindow(hwnd)
     except Exception:  # noqa: BLE001 - Windows may refuse; try UIA next
@@ -462,6 +563,14 @@ def _bring_to_front(hwnd: int) -> bool:
 
 
 def open_app(name: str) -> dict:
+    """Launch an app from the [apps.*] allowlist, or focus it if already running.
+
+    Only names in config.toml can be opened, and the exe comes from config,
+    never from the model. If a window of that process already exists, it is
+    focused (action "focused") instead of starting a second copy. Otherwise
+    the app is started and we wait up to 15 s for its window (action
+    "launched"). "foreground" says whether it actually came to the front.
+    """
     apps = config.apps()
     key = name.strip().lower()
     spec = apps.get(key)
@@ -479,6 +588,7 @@ def open_app(name: str) -> dict:
     except OSError as exc:
         return _fail(f"could not launch {exe}: {exc}")
 
+    # Poll for the new window to appear.
     deadline = time.time() + 15
     while time.time() < deadline:
         found = win.find_by_process(spec["process"])

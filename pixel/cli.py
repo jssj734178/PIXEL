@@ -2,6 +2,13 @@
 
 Also runs as `python -m pixel.cli ...`, which avoids the pixel.exe launcher
 (blocked by Application Control on this machine, see QUIRKS.md).
+
+Each subcommand is a cmd_* function, wired up in build_parser() at the bottom.
+    window, tree, click, type, keys, open   one bridge tool by hand (M1)
+    run                                     the full model loop (loop.Runner)
+    log                                     show the SQLite action log
+Bridge imports are inside each function so `pixel --help` and `pixel log`
+start fast and don't load UI Automation.
 """
 
 from __future__ import annotations
@@ -18,6 +25,10 @@ warnings.filterwarnings("ignore", category=SyntaxWarning)
 
 
 def _utf8_stdout() -> None:
+    """Print UTF-8 even on a legacy Windows console, replacing anything unprintable.
+
+    Screen text often has characters (…, emoji, accents) the default code page can't show.
+    """
     for stream in (sys.stdout, sys.stderr):
         try:
             stream.reconfigure(encoding="utf-8", errors="replace")
@@ -26,11 +37,13 @@ def _utf8_stdout() -> None:
 
 
 def _verbose(args, msg: str) -> None:
+    """Print a [verbose] line to stderr when -v was given."""
     if args.verbose:
         print(f"[verbose] {msg}", file=sys.stderr)
 
 
 def _wait(args) -> None:
+    """--delay N: sleep N seconds first so you can click into the target window."""
     if getattr(args, "delay", 0):
         print(f"waiting {args.delay} s, switch to the target window…", file=sys.stderr)
         time.sleep(args.delay)
@@ -49,6 +62,7 @@ def _result(args, res: dict) -> int:
 
 
 def cmd_window(args) -> int:
+    """pixel window: print the focused window's title, process, pid and handle."""
     from pixel.bridge import get_focused_window
     _wait(args)
     res = get_focused_window()
@@ -58,6 +72,10 @@ def cmd_window(args) -> int:
 
 
 def cmd_tree(args) -> int:
+    """pixel tree: print a window's pruned tree with [id]s (and save it for click/type).
+
+    --save PATH also writes the raw tree as JSON, the format of tests/fixtures/.
+    """
     from pixel.bridge import get_ui_tree
     _wait(args)
     res = get_ui_tree(args.window, max_depth=args.depth, max_elements=args.max,
@@ -77,6 +95,7 @@ def cmd_tree(args) -> int:
 
 
 def cmd_click(args) -> int:
+    """pixel click ID: activate an element from the last `pixel tree`."""
     from pixel.bridge import click_element
     _wait(args)
     res = click_element(args.id)
@@ -86,6 +105,7 @@ def cmd_click(args) -> int:
 
 
 def cmd_type(args) -> int:
+    """pixel type ID TEXT: put text into an element from the last `pixel tree`."""
     from pixel.bridge import type_text
     _wait(args)
     res = type_text(args.id, args.text)
@@ -97,6 +117,7 @@ def cmd_type(args) -> int:
 
 
 def cmd_keys(args) -> int:
+    """pixel keys "ctrl+s": send a shortcut to the window from the last `pixel tree`."""
     from pixel.bridge import send_keys
     _wait(args)
     res = send_keys(args.keys)
@@ -106,6 +127,7 @@ def cmd_keys(args) -> int:
 
 
 def cmd_open(args) -> int:
+    """pixel open NAME: launch or focus an app from [apps.*] in config.toml."""
     from pixel.bridge import open_app
     res = open_app(args.name)
     if res.get("ok"):
@@ -115,6 +137,13 @@ def cmd_open(args) -> int:
 
 
 def cmd_run(args) -> int:
+    """pixel run "task": set everything up and hand over to loop.Runner.
+
+    Order: check flags, build the model chain from config (with any
+    --simulate-fail wrappers), load the system prompt, start the kill hotkey
+    (refusing --no-confirm without it), open the action log, run. The hotkey
+    and log are always cleaned up in `finally`, even after a crash.
+    """
     from pixel import config
     from pixel.actionlog import ActionLog
     from pixel.killswitch import KillSwitch
@@ -164,11 +193,16 @@ def cmd_run(args) -> int:
 
 
 def _clip(s, n: int) -> str:
-    s = " ".join(str(s or "").split())
+    """Collapse whitespace and cut to n characters, for table columns."""
+    s =" ".join(str(s or "").split())
     return s if len(s) <= n else s[: n - 1] + "…"
 
 
 def cmd_log(args) -> int:
+    """pixel log: list recent runs. pixel log ID: one run's steps. --tree adds each tree.
+
+    Opens the database read-only (mode=ro), so viewing can't change or lock it.
+    """
     import sqlite3
     from pixel import config
     from pixel import actionlog
@@ -184,6 +218,7 @@ def cmd_log(args) -> int:
         print(f"error: cannot open {path}: {exc}", file=sys.stderr)
         return 1
     try:
+        # No id: a table of recent runs.
         if args.run_id is None:
             rows = actionlog.recent_runs(db, args.n)
             print(f"{path}")
@@ -198,6 +233,7 @@ def cmd_log(args) -> int:
                       f"{r['fallbacks'] if r['fallbacks'] is not None else '':>2}  "
                       f"{pv} | {_clip(r['command'], 60)}")
             return 0
+        # An id: the run's summary, then each step with its failed attempts.
         run = actionlog.get_run(db, args.run_id)
         if run is None:
             print(f"error: no run #{args.run_id} in {path}", file=sys.stderr)
@@ -226,7 +262,9 @@ def cmd_log(args) -> int:
 
 
 def build_parser() -> argparse.ArgumentParser:
-    common = argparse.ArgumentParser(add_help=False)
+    """All subcommands and their flags. Each sets func= to the cmd_* that runs it."""
+    # Shared flags, added to subcommands through parents=[...].
+    common =argparse.ArgumentParser(add_help=False)
     common.add_argument("-v", "--verbose", action="store_true",
                         help="print sizes, timings and the action method")
     delay = argparse.ArgumentParser(add_help=False)
@@ -286,6 +324,7 @@ def build_parser() -> argparse.ArgumentParser:
 
 
 def main(argv: list[str] | None = None) -> int:
+    """Entry point: parse the command line and run the chosen subcommand. Returns the exit code."""
     _utf8_stdout()
     args = build_parser().parse_args(argv)
     return args.func(args)
