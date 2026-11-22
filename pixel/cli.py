@@ -1,4 +1,8 @@
-"""pixel window | tree | click | type | keys | open"""
+"""pixel window | tree | click | type | keys | open | run
+
+Also runs as `python -m pixel.cli ...`, which avoids the pixel.exe launcher
+(blocked by Application Control on this machine, see QUIRKS.md).
+"""
 
 from __future__ import annotations
 
@@ -110,6 +114,51 @@ def cmd_open(args) -> int:
     return _result(args, res)
 
 
+def cmd_run(args) -> int:
+    from pixel import config
+    from pixel.killswitch import KillSwitch
+    from pixel.loop import Desktop, Runner
+    from pixel.models import ModelError, from_config
+
+    run_cfg = config.run()
+    confirm = bool(run_cfg["confirm"]) and not args.no_confirm
+    if args.max_steps is not None and args.max_steps < 1:
+        print("error: --max-steps must be at least 1", file=sys.stderr)
+        return 1
+    if args.max_steps and args.max_steps > run_cfg["step_cap"]:
+        print(f"note: --max-steps can only lower the cap; using {run_cfg['step_cap']}",
+              file=sys.stderr)
+
+    missing = [a for a in run_cfg["cloud_apps"] if a not in config.apps()]
+    if missing:
+        print(f"warning: run.cloud_apps lists apps with no [apps.*] entry: {', '.join(missing)}",
+              file=sys.stderr)
+    try:
+        model = from_config(config.models())
+    except ModelError as exc:
+        print(f"error: {exc}", file=sys.stderr)
+        return 1
+    system_prompt = (config.PROJECT_ROOT / "prompts" / "system.md").read_text(encoding="utf-8")
+
+    kill = KillSwitch(run_cfg["kill_hotkey"])
+    if not kill.start():
+        if not confirm:
+            print(f"error: kill hotkey unavailable ({kill.error}); "
+                  "refusing to run with --no-confirm", file=sys.stderr)
+            return 1
+        print(f"warning: kill hotkey unavailable ({kill.error}); confirm mode still asks "
+              "before every action", file=sys.stderr)
+    try:
+        runner = Runner(args.command, model=model, desktop=Desktop(config.apps()),
+                        run_cfg=run_cfg, apps=config.apps(), system_prompt=system_prompt,
+                        confirm=confirm, max_steps=args.max_steps, verbose=args.verbose,
+                        show_prompt=args.show_prompt, kill=kill,
+                        chars_per_token=config.bridge()["chars_per_token"])
+        return runner.run()
+    finally:
+        kill.stop()
+
+
 def build_parser() -> argparse.ArgumentParser:
     common = argparse.ArgumentParser(add_help=False)
     common.add_argument("-v", "--verbose", action="store_true",
@@ -118,7 +167,7 @@ def build_parser() -> argparse.ArgumentParser:
     delay.add_argument("--delay", type=float, default=0,
                        help="seconds to wait first, so you can switch windows")
 
-    p = argparse.ArgumentParser(prog="pixel", description="PIXEL bridge commands (M1)")
+    p = argparse.ArgumentParser(prog="pixel", description="PIXEL: control Windows apps through the accessibility tree")
     sub = p.add_subparsers(dest="cmd", required=True)
 
     s = sub.add_parser("window", parents=[common, delay], help="show the focused window")
@@ -148,6 +197,15 @@ def build_parser() -> argparse.ArgumentParser:
     s = sub.add_parser("open", parents=[common], help="launch or focus an allowlisted app")
     s.add_argument("name")
     s.set_defaults(func=cmd_open)
+
+    s = sub.add_parser("run", parents=[common], help="carry out a task with the model loop")
+    s.add_argument("command", help='the task, e.g. "open Notepad and type hello"')
+    s.add_argument("--no-confirm", action="store_true",
+                   help="do not ask before each action (needs the kill hotkey)")
+    s.add_argument("--max-steps", type=int, help="lower the step cap for this run")
+    s.add_argument("--show-prompt", action="store_true",
+                   help="print the full prompt sent on each step (long)")
+    s.set_defaults(func=cmd_run)
     return p
 
 

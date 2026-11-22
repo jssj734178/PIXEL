@@ -1,9 +1,42 @@
-# PIXEL configuration. Model names will live here from M2 on.
+# PIXEL configuration. Model names live here and nowhere in code.
+
+[models]
+navigation = "gemini-3.5-flash-lite"   # M3 adds a chain: Gemini, then Groq, then Ollama
+# Nov 21-22, 2026: gemini-3.8-flash (5/5 timeouts or "high demand") and
+# gemini-3.7-flash (5/5 "high demand") never answered a trial, so trying the lite model.
+
+[models.options."gemini-3.5-flash-lite"]
+thinking_level = "minimal"   # lowest the plugin offers for this model
+temperature = 0
+timeout = 60
+
+# Passed to the llm model unchanged. Each model gets its own table.
+[models.options."gemini-3.7-flash"]
+thinking_level = "low"   # lowest the plugin offers for this model
+temperature = 0
+timeout = 60             # seconds per model call
+
+[models.options."gemini-3.8-flash"]
+thinking_level = "low"   # lowest the plugin offers; thinking can't be turned off for this model
+temperature = 0
+timeout = 60             # seconds per model call; replies have taken up to ~30 s here
+
+[run]
+step_cap = 15             # --max-steps can only lower this
+history_steps = 8         # recent steps shown to the model
+max_rejected = 3          # invalid tool calls in a row before the run stops
+confirm = true            # ask before each action; --no-confirm turns it off
+# Only these apps' windows are ever read during a run and sent to the model.
+cloud_apps = ["notepad"]
+kill_hotkey = "ctrl+alt+q"
+settle_initial = 0.2      # seconds before the first settle read
+settle_interval = 0.15    # seconds between settle reads
+settle_timeout = 3.0      # give up waiting for two identical reads after this
 
 [bridge]
 max_depth = 12        # raw UIA levels walked below the window
 max_elements = 120    # lines kept per read (interactive + context)
-chars_per_token = 4   # token estimate divisor
+chars_per_token = 2.5 # token estimate divisor; measured 2.4 to 2.6 on gemini-3.8-flash (M2)
 
 # open_app only launches or focuses apps listed here.
 # exe: what gets launched (env vars like %LOCALAPPDATA% are expanded).

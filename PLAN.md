@@ -1,6 +1,6 @@
 # PIXEL: development plan
 
-Status: M0 complete as of Nov 16, 2026. Architecture is in `SPEC.md`. Standing rules for Claude Code are in `CLAUDE.md`.
+Status: M2 complete as of Nov 22, 2026 (M0 Nov 16, M1 Nov 17). Next: M3. Architecture is in `SPEC.md`. Standing rules for Claude Code are in `CLAUDE.md`.
 
 ## Goal and definition of done
 
@@ -35,11 +35,12 @@ uv, `llm` with Gemini (`gemini-3.8-flash` works), repo, spec and plan files, and
 - Saved JSON tree fixtures, so the pruning logic is tested without live apps.
 - **Done when:** `pixel tree` prints a Notepad tree under about 500 tokens, and click and type work from the command line by element ID.
 
-### M2 · Core loop
+### M2 · Core loop (done)
 
 - `pixel run "<command>"` reads the tree, calls one model through `llm` with the tools, executes the action, waits for the UI to settle, and repeats.
 - It stops when the model calls `finish` or after 15 steps. `--verbose` prints each tree size, model call, and action.
 - **Done when:** `pixel run "open Notepad and type hello"` succeeds in at least 4 of 5 runs.
+- **Result (Nov 22, 2026):** 4/5 clean passes with `gemini-3.5-flash-lite` (thinking `minimal`), 3 steps and about 7 s each. The fifth also passed, but it started with the previous trial's Notepad still open, so it doesn't count. Stop checks passed: an impossible task ends with `ask_user`, and `--max-steps 2` stops at the cap. The kill hotkey (Ctrl+Alt+Q) and confirm mode were brought forward from M3. `gemini-3.8-flash` and `gemini-3.7-flash` never answered a trial (timeouts and "high demand"); see `QUIRKS.md`.
 
 ### M3 · Reliability and logging
 

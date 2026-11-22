@@ -35,6 +35,8 @@ _PATTERNS = {
     "select": "IsSelectionItemPatternAvailable",
     "expand": "IsExpandCollapsePatternAvailable",
     "value": "IsValuePatternAvailable",
+    "scroll": "IsScrollPatternAvailable",
+    "text": "IsTextPatternAvailable",
 }
 
 

@@ -145,15 +145,21 @@ def get_focused_window() -> dict:
         return _fail(f"could not read the focused window: {exc}")
 
 
-def get_ui_tree(window: str | None = None, *, max_depth: int | None = None,
-                max_elements: int | None = None, include_raw: bool = False) -> dict:
+def get_ui_tree(window: str | None = None, *, handle: int | None = None,
+                max_depth: int | None = None, max_elements: int | None = None,
+                include_raw: bool = False) -> dict:
+    """Read one window: by handle, by title/process substring, or the focused one."""
     from pixel.bridge.capture import capture_window
 
     cfg = config.bridge()
     max_depth = max_depth or cfg["max_depth"]
     max_elements = max_elements or cfg["max_elements"]
     try:
-        if window:
+        if handle:
+            if not win.is_window(handle):
+                return _fail(f"window {handle} is gone")
+            target = win.window_info(handle)
+        elif window:
             target = win.find_window(window)
             if not target:
                 return _fail(f"no visible window matches '{window}'")
@@ -181,6 +187,9 @@ def get_ui_tree(window: str | None = None, *, max_depth: int | None = None,
         "raw_nodes": cap.raw_nodes,
         "tokens": estimate_tokens(text, cfg["chars_per_token"]),
         "seconds": round(seconds, 2),
+        # short descriptions by ID, for confirm prompts and validation
+        "labels": {e.id: f"{e.control_type} '{e.name or e.automation_id}'"
+                   for e in res.elements},
     }
     if include_raw:
         out["raw"] = cap.root
@@ -243,7 +252,8 @@ def _norm(s: str) -> str:
     return (s or "").replace("\r\n", "\n").replace("\r", "\n")
 
 
-def type_text(id: int, text: str) -> dict:  # noqa: A002
+def type_text(id: int, text: str, should_stop=None) -> dict:  # noqa: A002
+    """should_stop: optional callable, checked between keystroke chunks (kill hotkey)."""
     from pywinauto.uia_defines import NoPatternInterfaceError, get_elem_interface
 
     try:
@@ -286,6 +296,9 @@ def type_text(id: int, text: str) -> dict:  # noqa: A002
 
     sent = 0
     for start in range(0, len(text), CHUNK):
+        if should_stop and should_stop():
+            return _fail(f"stopped by the kill hotkey after {sent} of {len(text)} characters",
+                         method="keys", chars=sent)
         err = check_foreground(target)
         if err:
             return _fail(f"{err}; stopped after {sent} of {len(text)} characters",
@@ -314,6 +327,117 @@ def send_keys(keys: str) -> dict:
     except Exception as exc:  # noqa: BLE001
         return _fail(f"sending keys failed: {exc}")
     return {"ok": True, "sent": keys.strip().lower()}
+
+
+_SCROLL_DIRS = {"up": ("v", -1), "down": ("v", 1), "left": ("h", -1), "right": ("h", 1)}
+SCROLL_WALK_UP = 8          # levels above the element searched for a ScrollPattern
+READ_LIMIT = 2000           # characters returned by read_text
+
+
+def scroll(id: int, direction: str) -> dict:  # noqa: A002
+    """Scroll the nearest scrollable container of an element by one page."""
+    from pywinauto import uia_defines as ud
+
+    direction = (direction or "").strip().lower()
+    if direction not in _SCROLL_DIRS:
+        return _fail(f"unknown direction '{direction}' (use up, down, left, right)")
+    axis, sign = _SCROLL_DIRS[direction]
+    try:
+        target, loc, el = _resolve(id)
+    except LookupError as exc:
+        return _fail(str(exc))
+    except Exception as exc:  # noqa: BLE001
+        return _fail(f"could not find element {id}: {exc}")
+
+    # 1. ScrollPattern on the element or an ancestor, never above the window.
+    sp = None
+    try:
+        iuia = ud.IUIA().iuia
+        window_el = iuia.ElementFromHandle(target["handle"])
+        node = el
+        for _ in range(SCROLL_WALK_UP + 1):
+            try:
+                sp = ud.get_elem_interface(node, "Scroll")
+                break
+            except ud.NoPatternInterfaceError:
+                pass
+            if iuia.CompareElements(node, window_el):
+                break
+            node = iuia.ControlViewWalker.GetParentElement(node)
+            if not node:
+                break
+    except Exception:  # noqa: BLE001 - fall back to the wheel
+        sp = None
+
+    if sp is not None:
+        try:
+            if axis == "v":
+                can = sp.CurrentVerticallyScrollable
+                pct = lambda: float(sp.CurrentVerticalScrollPercent)  # noqa: E731
+            else:
+                can = sp.CurrentHorizontallyScrollable
+                pct = lambda: float(sp.CurrentHorizontalScrollPercent)  # noqa: E731
+            if not can:
+                return {"ok": True, "method": "pattern", "direction": direction,
+                        "at_edge": True, "note": f"nothing to scroll {direction}"}
+            before = pct()
+            if (sign > 0 and before >= 100) or (sign < 0 and before <= 0):
+                return {"ok": True, "method": "pattern", "direction": direction,
+                        "before": round(before), "after": round(before), "at_edge": True}
+            amount = ud.scroll_large_increment if sign > 0 else ud.scroll_large_decrement
+            if axis == "v":
+                sp.Scroll(ud.scroll_no_amount, amount)
+            else:
+                sp.Scroll(amount, ud.scroll_no_amount)
+            time.sleep(0.1)
+            after = pct()
+            return {"ok": True, "method": "pattern", "direction": direction,
+                    "before": round(before), "after": round(after),
+                    "at_edge": round(before) == round(after)}
+        except Exception as exc:  # noqa: BLE001
+            return _fail(f"scrolling {_describe(loc)} failed: {exc}")
+
+    # 2. Mouse wheel at the element centre (vertical only), behind the same
+    #    covered-window check as click.
+    if axis != "v":
+        return _fail(f"{_describe(loc)} has no scrollable container for {direction}")
+    try:
+        r = el.CurrentBoundingRectangle
+        if r.right <= r.left or r.bottom <= r.top:
+            return _fail(f"{_describe(loc)} has no scrollable container and no size")
+        cx, cy = (r.left + r.right) // 2, (r.top + r.bottom) // 2
+        if win.top_window_at(cx, cy) != win.root_owner(target["handle"]):
+            return _fail(f"{_describe(loc)} is covered by another window; nothing was scrolled")
+        from pywinauto import mouse
+        mouse.scroll(coords=(cx, cy), wheel_dist=-3 if sign > 0 else 3)
+        return {"ok": True, "method": "wheel", "direction": direction}
+    except Exception as exc:  # noqa: BLE001
+        return _fail(f"could not scroll {_describe(loc)}: {exc}")
+
+
+def read_text(id: int) -> dict:  # noqa: A002
+    """Text of an element: ValuePattern, then TextPattern, then its name."""
+    from pywinauto.uia_defines import NoPatternInterfaceError, get_elem_interface
+
+    try:
+        _target, loc, el = _resolve(id)
+    except LookupError as exc:
+        return _fail(str(exc))
+    except Exception as exc:  # noqa: BLE001
+        return _fail(f"could not find element {id}: {exc}")
+    try:
+        try:
+            text, source = get_elem_interface(el, "Value").CurrentValue or "", "value"
+        except NoPatternInterfaceError:
+            try:
+                rng = get_elem_interface(el, "Text").DocumentRange
+                text, source = rng.GetText(READ_LIMIT + 1) or "", "text"
+            except NoPatternInterfaceError:
+                text, source = el.CurrentName or "", "name"
+    except Exception as exc:  # noqa: BLE001
+        return _fail(f"could not read {_describe(loc)}: {exc}")
+    return {"ok": True, "text": text[:READ_LIMIT], "source": source,
+            "truncated": len(text) > READ_LIMIT, "target": _describe(loc)}
 
 
 def _bring_to_front(hwnd: int) -> bool:

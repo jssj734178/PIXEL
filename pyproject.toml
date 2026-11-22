@@ -4,7 +4,10 @@ version = "0.1.0"
 description = "Controls Windows apps through the accessibility tree"
 requires-python = ">=3.11"
 dependencies = [
+    "llm==0.37.2",
+    "llm-gemini==0.37",
     "pywinauto==0.6.9",
+    "truststore==0.10.5",
 ]
 
 [project.scripts]

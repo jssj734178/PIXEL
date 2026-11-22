@@ -8,6 +8,26 @@
       "PowerShell(uv run python *)",
       "PowerShell(git status*)",
       "PowerShell(git diff*)"
+    ],
+    "ask": [
+      "PowerShell(*pixel run*)",
+      "PowerShell(*pixel click*)",
+      "PowerShell(*pixel type*)",
+      "PowerShell(*pixel keys*)",
+      "PowerShell(*pixel open*)",
+      "PowerShell(*pixel.cli*)",
+      "PowerShell(*trial_notepad*)",
+      "PowerShell(*pixel.bridge*)",
+      "PowerShell(*pixel.loop*)",
+      "Bash(*pixel run*)",
+      "Bash(*pixel click*)",
+      "Bash(*pixel type*)",
+      "Bash(*pixel keys*)",
+      "Bash(*pixel open*)",
+      "Bash(*pixel.cli*)",
+      "Bash(*trial_notepad*)",
+      "Bash(*pixel.bridge*)",
+      "Bash(*pixel.loop*)"
     ]
   }
 }
