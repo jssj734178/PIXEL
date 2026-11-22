@@ -1,6 +1,6 @@
 # PIXEL: development plan
 
-Status: M2 complete as of Nov 22, 2026 (M0 Nov 16, M1 Nov 17). Next: M3. Architecture is in `SPEC.md`. Standing rules for Claude Code are in `CLAUDE.md`.
+Status: M3 complete as of Nov 22, 2026 (M0 Nov 16, M1 Nov 17, M2 Nov 22). Next: M4. Architecture is in `SPEC.md`. Standing rules for Claude Code are in `CLAUDE.md`.
 
 ## Goal and definition of done
 
@@ -48,6 +48,14 @@ uv, `llm` with Gemini (`gemini-3.8-flash` works), repo, spec and plan files, and
 - A SQLite action log with the command, execution path, steps, seconds, and success.
 - Safety basics: step cap, kill hotkey, and the hard-blocked action list.
 - **Done when:** forcing a rate-limit error on the first provider moves a task to the second mid-run, and every run writes a log row.
+- **Result (Nov 22, 2026):** passed.
+  - With `--simulate-fail gemini-lite@2`, Gemini answered step 1, the simulated 429 moved step 2 to Groq (`openai/gpt-oss-120b`, about 0.6 s per call), and Groq finished the task. This is log row #2.
+  - All 7 hand-test runs wrote a log row, whatever the outcome: finish, ask_user, stopped, error.
+  - Ollama alone (`qwen2.5:7b`) finished the Notepad task at about 4 s per step.
+  - With every provider down, the run ended with exit 1 and the full trail.
+  - A card number in the task was blocked and redacted. The model then called `ask_user`.
+  - The kill hotkey and Ctrl+C both stop a run during a model call.
+  - The chain needed no new dependencies: Groq and Ollama go through llm's built-in OpenAI-compatible client.
 
 ## Phase 2: daily driver (M4 to M7)
 

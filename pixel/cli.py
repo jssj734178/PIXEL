@@ -1,4 +1,4 @@
-"""pixel window | tree | click | type | keys | open | run
+"""pixel window | tree | click | type | keys | open | run | log
 
 Also runs as `python -m pixel.cli ...`, which avoids the pixel.exe launcher
 (blocked by Application Control on this machine, see QUIRKS.md).
@@ -116,6 +116,7 @@ def cmd_open(args) -> int:
 
 def cmd_run(args) -> int:
     from pixel import config
+    from pixel.actionlog import ActionLog
     from pixel.killswitch import KillSwitch
     from pixel.loop import Desktop, Runner
     from pixel.models import ModelError, from_config
@@ -134,7 +135,7 @@ def cmd_run(args) -> int:
         print(f"warning: run.cloud_apps lists apps with no [apps.*] entry: {', '.join(missing)}",
               file=sys.stderr)
     try:
-        model = from_config(config.models())
+        model = from_config(config.models(), simulate=args.simulate_fail or ())
     except ModelError as exc:
         print(f"error: {exc}", file=sys.stderr)
         return 1
@@ -148,15 +149,80 @@ def cmd_run(args) -> int:
             return 1
         print(f"warning: kill hotkey unavailable ({kill.error}); confirm mode still asks "
               "before every action", file=sys.stderr)
+    log_cfg = config.log()
+    log = ActionLog.open(log_cfg["path"], store_tree=bool(log_cfg["store_tree"]))
     try:
         runner = Runner(args.command, model=model, desktop=Desktop(config.apps()),
                         run_cfg=run_cfg, apps=config.apps(), system_prompt=system_prompt,
                         confirm=confirm, max_steps=args.max_steps, verbose=args.verbose,
-                        show_prompt=args.show_prompt, kill=kill,
+                        show_prompt=args.show_prompt, kill=kill, log=log,
                         chars_per_token=config.bridge()["chars_per_token"])
         return runner.run()
     finally:
         kill.stop()
+        log.close()
+
+
+def _clip(s, n: int) -> str:
+    s = " ".join(str(s or "").split())
+    return s if len(s) <= n else s[: n - 1] + "…"
+
+
+def cmd_log(args) -> int:
+    import sqlite3
+    from pixel import config
+    from pixel import actionlog
+
+    path = Path(config.log()["path"])
+    if not path.exists():
+        print(f"no action log yet at {path}", file=sys.stderr)
+        return 1
+    try:
+        db = sqlite3.connect(f"file:{path.as_posix()}?mode=ro", uri=True)
+        db.row_factory = sqlite3.Row
+    except sqlite3.Error as exc:
+        print(f"error: cannot open {path}: {exc}", file=sys.stderr)
+        return 1
+    try:
+        if args.run_id is None:
+            rows = actionlog.recent_runs(db, args.n)
+            print(f"{path}")
+            print(f"{'id':>4}  {'started':19}  {'outcome':8}  {'steps':>5}  {'secs':>6}  "
+                  f"{'fb':>2}  providers / command")
+            for r in rows:
+                provs = json.loads(r["providers"] or "{}")
+                pv = ", ".join(f"{k} {n}" for k, n in provs.items()) or "-"
+                print(f"{r['id']:>4}  {(r['started_at'] or '')[:19]:19}  "
+                      f"{r['outcome'] or 'running?':8}  {r['steps'] if r['steps'] is not None else '':>5}  "
+                      f"{r['seconds'] if r['seconds'] is not None else '':>6}  "
+                      f"{r['fallbacks'] if r['fallbacks'] is not None else '':>2}  "
+                      f"{pv} | {_clip(r['command'], 60)}")
+            return 0
+        run = actionlog.get_run(db, args.run_id)
+        if run is None:
+            print(f"error: no run #{args.run_id} in {path}", file=sys.stderr)
+            return 1
+        print(f"run #{run['id']}  {run['started_at']} -> {run['ended_at'] or '?'}")
+        print(f"command  {run['command']}")
+        print(f"path {run['path']}  chain {run['chain']}  confirm {'on' if run['confirm'] else 'off'}")
+        print(f"outcome  {run['outcome']} (exit {run['exit_code']}): {run['message']}")
+        print(f"steps {run['steps']}  {run['seconds']} s  tokens in {run['tokens_in']} "
+              f"out {run['tokens_out']}  providers {run['providers']}  fallbacks {run['fallbacks']}")
+        for s in actionlog.run_steps(db, args.run_id):
+            print(f"\n[{s['step']}] {s['at']}  {s['provider'] or '-'} {s['model'] or ''}  "
+                  f"model {s['model_seconds']} s  "
+                  f"action {s['action_seconds'] if s['action_seconds'] is not None else '-'} s")
+            for a in json.loads(s["attempts"] or "[]"):
+                tag = "skipped" if a.get("skipped") else ("retried" if a.get("retried") else "failed")
+                print(f"    {tag} {a['provider']}: {a['kind']} ({_clip(a['error'], 100)})")
+            print(f"    tree   {s['tree_stats']}")
+            print(f"    {s['status']:7} {s['tool'] or '-'} {s['args'] or ''}")
+            print(f"    result {_clip(s['result'], 200)}")
+            if args.tree and s["tree_text"]:
+                print("    " + s["tree_text"].replace("\n", "\n    "))
+        return 0
+    finally:
+        db.close()
 
 
 def build_parser() -> argparse.ArgumentParser:
@@ -205,7 +271,17 @@ def build_parser() -> argparse.ArgumentParser:
     s.add_argument("--max-steps", type=int, help="lower the step cap for this run")
     s.add_argument("--show-prompt", action="store_true",
                    help="print the full prompt sent on each step (long)")
+    s.add_argument("--simulate-fail", action="append", metavar="PROVIDER[:KIND][@N]",
+                   help="make a chain provider fail from its Nth call on, with no network "
+                        "call (KIND: rate_limit (default), overloaded, timeout, network, auth, "
+                        "bad_model, other). Repeatable. For testing the fallback chain.")
     s.set_defaults(func=cmd_run)
+
+    s = sub.add_parser("log", help="show the action log (recent runs, or one run's steps)")
+    s.add_argument("run_id", type=int, nargs="?", help="show this run's steps")
+    s.add_argument("-n", type=int, default=20, help="how many recent runs to list")
+    s.add_argument("--tree", action="store_true", help="also print each step's tree text")
+    s.set_defaults(func=cmd_log)
     return p
 
 

@@ -449,3 +449,139 @@ def test_anything_but_yes_declines(ans):
     model = FakeModel(call("open_app", name="notepad"), call("finish", summary="x"))
     r, d, *_ = make(model, confirm=True, answers=[ans])
     assert r.run() == 0 and d.acts == []
+
+
+# ---------- M3: fallback chain, action log, hard blocks ----------
+
+from pixel.actionlog import ActionLog  # noqa: E402
+from pixel.models import Chain, FailingModel, Provider  # noqa: E402
+
+
+def chain_of(*models):
+    return Chain([Provider(m.name, m) for m in models], sleep=lambda s: None)
+
+
+def rows(path):
+    import sqlite3
+    db = sqlite3.connect(path)
+    db.row_factory = sqlite3.Row
+    return (db.execute("SELECT * FROM runs").fetchall(),
+            db.execute("SELECT * FROM steps ORDER BY id").fetchall())
+
+
+def test_rate_limit_mid_run_moves_to_the_second_provider_and_logs_it(tmp_path):
+    import json
+    first = FailingModel(FakeModel(*HAPPY), "rate_limit", 2)   # answers step 1, then 429
+    first.name = "a"
+    second = FakeModel(*HAPPY[1:])
+    second.name = "b"
+    log = ActionLog(tmp_path / "pixel.db")
+    r, d, out, err = make(chain_of(first, second), verbose=True, log=log)
+    assert r.run() == 0
+    assert d.value == "hello"
+    # step 2 went to b with the same prompt a would have seen
+    assert "Step 2 of 15" in second.requests[0].prompt
+    e = err.getvalue()
+    assert "[run] chain a (a, simulated rate_limit from call 2) > b (b)" in e
+    assert "[2] model  a failed: rate_limit (a: simulated 429 rate limit) 0.0 s -> trying b" in e
+    assert "[3] model  skipping a (rate_limit earlier this run)" in e
+    assert "answered by a 1, b 2; 1 fallback  log row #1" in e
+
+    (run,), steps = rows(tmp_path / "pixel.db")
+    assert run["outcome"] == "finish" and run["success"] == 1 and run["steps"] == 3
+    assert json.loads(run["providers"]) == {"a": 1, "b": 2} and run["fallbacks"] == 1
+    assert run["chain"] == "a > b"
+    assert [(s["step"], s["provider"], s["tool"], s["status"]) for s in steps] == [
+        (1, "a", "open_app", "ok"), (2, "b", "type_text", "ok"), (3, "b", "finish", "stop")]
+    assert json.loads(steps[1]["attempts"])[0]["kind"] == "rate_limit"
+    assert "Untitled - Notepad" in steps[1]["tree_text"]      # the tree that led to typing
+
+
+def test_all_providers_failing_ends_with_exit_1_and_a_log_row(tmp_path):
+    a = FailingModel(FakeModel(), "rate_limit", 1)
+    a.name = "a"
+    b = FailingModel(FakeModel(), "timeout", 1)
+    b.name = "b"
+    log = ActionLog(tmp_path / "pixel.db")
+    r, _, out, err = make(chain_of(a, b), verbose=True, log=log)
+    assert r.run() == 1
+    assert "all providers failed (a: rate_limit; b: timeout)" in out.getvalue()
+    assert "b failed: timeout" in err.getvalue() and "-> no providers left" in err.getvalue()
+    (run,), (step,) = rows(tmp_path / "pixel.db")
+    assert run["outcome"] == "error" and run["success"] == 0 and run["exit_code"] == 1
+    assert step["status"] == "model_error"
+
+
+def test_every_exit_writes_a_run_row(tmp_path):
+    path = tmp_path / "pixel.db"
+    for model, kw in [(FakeModel(*HAPPY), {}),
+                      (FakeModel(call("ask_user", question="which?")), {}),
+                      (FakeModel(call("open_app", name="notepad")), {"max_steps": 2}),
+                      (FakeModel(*HAPPY), {"confirm": True, "answers": ["q"]})]:
+        r, *_ = make(model, log=ActionLog(path), **kw)
+        r.run()
+    runs, _ = rows(path)
+    assert [x["outcome"] for x in runs] == ["finish", "ask_user", "cap", "stopped"]
+    assert all(x["ended_at"] for x in runs)
+
+
+def test_a_crash_is_still_logged(tmp_path):
+    d = FakeDesktop()
+    d.read = lambda handle: (_ for _ in ()).throw(RuntimeError("uia exploded"))
+    r, *_ = make(FakeModel(*HAPPY), d, log=ActionLog(tmp_path / "pixel.db"))
+    with pytest.raises(RuntimeError):
+        r.run()
+    (run,), _ = rows(tmp_path / "pixel.db")
+    assert run["outcome"] == "crashed" and "uia exploded" in run["message"]
+
+
+def test_card_number_is_blocked_redacted_and_never_reaches_the_bridge(tmp_path):
+    card = "4111 1111 1111 1111"
+    model = FakeModel(call("open_app", name="notepad"), call("type_text", id=2, text=card),
+                      call("ask_user", question="I can't type card numbers. What now?"))
+    r, d, out, err = make(model, verbose=True, confirm=True, answers=["y", "y"],
+                          log=ActionLog(tmp_path / "pixel.db"))
+    assert r.run() == 2
+    assert d.acts == [("open_app", {"name": "notepad"})]
+    p3 = model.requests[2].prompt
+    assert "Last result: BLOCKED (card or ID data)" in p3
+    assert card not in p3                                     # history shows it redacted
+    e = err.getvalue()
+    assert "[2] block  type_text(id=2 Document 'Text editor', text=\"[redacted: card or ID data]\")" in e
+    assert card not in e and "run? [y/N/q]" in e and e.count("run? [y/N/q]") == 1
+    _, steps = rows(tmp_path / "pixel.db")
+    assert steps[1]["status"] == "blocked" and card not in steps[1]["args"]
+
+
+def test_blocks_apply_without_confirm_and_a_second_block_stops_with_exit_5(tmp_path):
+    class BuyDesktop(FakeDesktop):
+        def read(self, handle):
+            res = super().read(handle)
+            res["labels"] = {**res["labels"], 1: "Button 'Buy now'"}
+            return res
+
+    model = FakeModel(call("open_app", name="notepad"), call("click_element", id=1),
+                      call("click_element", id=1))
+    r, d, out, _ = make(model, BuyDesktop(), confirm=False, log=ActionLog(tmp_path / "pixel.db"))
+    assert r.run() == 5
+    assert d.acts == [("open_app", {"name": "notepad"})]
+    assert "stopped: blocked action tried again (purchase)" in out.getvalue()
+    (run,), _ = rows(tmp_path / "pixel.db")
+    assert run["outcome"] == "blocked" and run["exit_code"] == 5
+
+
+def test_first_send_prompt_names_every_provider_in_the_chain():
+    a, b = FakeModel(*HAPPY), FakeModel()
+    a.name, b.name = "a", "b"
+    r, _, _, err = make(chain_of(a, b), confirm=True, answers=["y", "y", "y"])
+    assert r.run() == 0
+    assert "send this window's tree to a (falling back to b)? [y/N]" in err.getvalue()
+
+
+def test_logged_command_has_card_numbers_redacted(tmp_path):
+    model = FakeModel(call("ask_user", question="no"))
+    r, *_ = make(model, log=ActionLog(tmp_path / "pixel.db"))
+    r.command = "type 4111 1111 1111 1111 in Notepad"
+    r.run()
+    (run,), _ = rows(tmp_path / "pixel.db")
+    assert run["command"] == "type [redacted: card number] in Notepad"

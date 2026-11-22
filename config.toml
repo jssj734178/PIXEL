@@ -1,25 +1,53 @@
 # PIXEL configuration. Model names live here and nowhere in code.
 
 [models]
-navigation = "gemini-3.5-flash-lite"   # M3 adds a chain: Gemini, then Groq, then Ollama
+# Tried in order on every step. Any model error moves the same step to the next
+# provider; rate limits, "high demand", bad keys and unknown models skip that
+# provider for the rest of the run. Names are keys of [models.providers.*].
+chain = ["gemini-lite", "groq", "ollama"]
 # Nov 21-22, 2026: gemini-3.8-flash (5/5 timeouts or "high demand") and
-# gemini-3.7-flash (5/5 "high demand") never answered a trial, so trying the lite model.
+# gemini-3.7-flash (5/5 "high demand") never answered a trial, so they are not
+# in the chain. Add "gemini-38" or "gemini-37" back to try them.
 
-[models.options."gemini-3.5-flash-lite"]
-thinking_level = "minimal"   # lowest the plugin offers for this model
-temperature = 0
+# model: the llm model id. options: passed to the model unchanged.
+# timeout: seconds per model call.
+[models.providers.gemini-lite]
+model = "gemini-3.5-flash-lite"
+timeout = 20                 # calls take about 0.7 s
+options = { thinking_level = "minimal", temperature = 0 }   # lowest thinking the plugin offers
+
+# OpenAI-compatible endpoints (api_base) go through llm's built-in client.
+# key: the llm key alias (llm keys set groq) or env var GROQ_API_KEY.
+# Nov 22, 2026: llama-3.3-70b-versatile is gone from Groq (404). Models this key can
+# use with tool calls: openai/gpt-oss-120b, openai/gpt-oss-20b, qwen/qwen3.8-27b.
+[models.providers.groq]
+model = "openai/gpt-oss-120b"
+api_base = "https://api.groq.com/openai/v1"
+key = "groq"
+reasoning = true             # enables the reasoning_effort option
+timeout = 30
+options = { reasoning_effort = "low", temperature = 0 }
+
+[models.providers.ollama]
+model = "qwen2.5:7b"
+api_base = "http://127.0.0.1:11434/v1"   # not localhost: that took 4-6 s to fail with Ollama off
+local = true                 # runs on this machine; no key
+timeout = 120                # the first call loads the model onto the GPU
+options = { temperature = 0 }
+
+[models.providers.gemini-37]
+model = "gemini-3.7-flash"
 timeout = 60
+options = { thinking_level = "low", temperature = 0 }
 
-# Passed to the llm model unchanged. Each model gets its own table.
-[models.options."gemini-3.7-flash"]
-thinking_level = "low"   # lowest the plugin offers for this model
-temperature = 0
-timeout = 60             # seconds per model call
+[models.providers.gemini-38]
+model = "gemini-3.8-flash"
+timeout = 60                 # replies have taken up to ~30 s
+options = { thinking_level = "low", temperature = 0 }   # thinking can't be turned off
 
-[models.options."gemini-3.8-flash"]
-thinking_level = "low"   # lowest the plugin offers; thinking can't be turned off for this model
-temperature = 0
-timeout = 60             # seconds per model call; replies have taken up to ~30 s here
+[log]
+path = '%LOCALAPPDATA%\pixel\pixel.db'   # outside OneDrive: it holds screen text
+store_tree = true                        # false: keep run and step rows but no tree text
 
 [run]
 step_cap = 15             # --max-steps can only lower this

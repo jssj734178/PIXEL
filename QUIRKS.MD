@@ -36,6 +36,15 @@
 - The `chars_per_token = 2.5` estimate was measured on 3.8 with tree text only. On full prompts sent to the lite model it **overestimates** by about 45% (about 1,564 estimated against 1,077 actual). It errs on the safe side, so it is left as is.
 - `scripts/trial_notepad.ps1` stops at the first quota, "high demand" or timeout error, so an outage costs one request instead of five.
 
+## Models (Groq and Ollama, M3)
+
+- Nov 22, 2026: **Groq (with a q) is not Grok**, the xAI / X model. Groq hosts open models (gpt-oss, Qwen) on its own chips.
+- `llama-3.3-70b-versatile` no longer exists on Groq (404: "does not exist or you do not have access to it"). To list the models this key can use, run a short script that calls `GET https://api.groq.com/openai/v1/models`; listing uses no tokens. On Nov 22 the list had `openai/gpt-oss-120b`, `openai/gpt-oss-20b`, `qwen/qwen3.8-27b` and some non-chat models.
+- `openai/gpt-oss-120b` with `reasoning_effort = "low"` passed the Notepad task at about 0.6 s per call. llm's built-in Chat class only offers `reasoning_effort` when it is built with `reasoning=True`, so its provider table needs `reasoning = true`.
+- Ollama `qwen2.5:7b` (5.2 GB) does not fit entirely in the RTX 4050's 6 GB: `ollama ps` shows 18%/82% CPU/GPU. It still runs at about 4 s per step, plus about 6 s more on the first call while the model loads. The context is 4096 by default, so no `OLLAMA_CONTEXT_LENGTH` setting is needed.
+- With Ollama not running, each connection attempt to `localhost:11434` took 4 to 6 s before failing, probably because Windows tries IPv6 first. `config.toml` now uses `127.0.0.1`; not yet re-tested with Ollama off.
+- llm writes the key to `keys.json` with `llm keys set groq`. Run it in a normal PowerShell window: Claude Code's `!` prefix can't take the hidden paste.
+
 
 
 \## Chrome

@@ -108,12 +108,71 @@ def test_unknown_model_is_model_error():
         LlmModel("missing", {}, _llm=StubLlm(StubModel())).next_action(REQ)
 
 
-def test_from_config_picks_navigation_model_and_its_options():
-    m = from_config({"navigation": "x-model",
-                     "options": {"x-model": {"temperature": 0}, "other": {"a": 1}}})
-    assert m.name == "x-model" and m.options == {"temperature": 0}
+CFG = {"chain": ["a", "b"],
+       "providers": {"a": {"model": "x-model", "timeout": 20, "options": {"temperature": 0}},
+                     "b": {"model": "y:7b", "api_base": "http://localhost:11434/v1",
+                           "local": True, "timeout": 120, "options": {"temperature": 0}},
+                     "unused": {"model": "z"}}}
 
 
-def test_from_config_without_model_fails():
-    with pytest.raises(ModelError):
-        from_config({"options": {}})
+def test_from_config_builds_the_chain_in_order():
+    chain = from_config(CFG)
+    assert chain.name == "a > b"
+    a, b = chain.providers
+    assert a.model.name == "x-model"
+    assert a.model.options == {"temperature": 0, "timeout": 20}   # llm-gemini takes timeout
+    assert b.model.name == "y:7b" and b.local
+    assert b.model.options == {"temperature": 0}                  # compat: timeout on the client
+    assert "b (y:7b, temperature=0, local)" in chain.describe()
+    assert chain.recipients() == "a (falling back to b (local))"
+
+
+@pytest.mark.parametrize("cfg, msg", [
+    ({"providers": {}}, "chain"),
+    ({"chain": ["a"], "providers": {}}, "no \\[models.providers"),
+    ({"chain": ["a"], "providers": {"a": {}}}, "needs model"),
+    ({"chain": ["a", "a"], "providers": {"a": {"model": "m"}}}, "twice"),
+])
+def test_from_config_rejects_bad_chains(cfg, msg):
+    with pytest.raises(ModelError, match=msg):
+        from_config(cfg)
+
+
+def test_simulate_fail_wraps_only_the_named_provider():
+    chain = from_config(CFG, simulate=["b:timeout@3"])
+    a, b = chain.providers
+    assert type(a.model).__name__ == "LlmModel"
+    assert type(b.model).__name__ == "FailingModel"
+    assert (b.model.kind, b.model.start) == ("timeout", 3)
+    assert "simulated timeout from call 3" in chain.describe()
+
+
+def test_simulate_fail_unknown_provider_or_kind():
+    with pytest.raises(ModelError, match="not in the chain"):
+        from_config(CFG, simulate=["nope"])
+    with pytest.raises(ModelError, match="kind must be one of"):
+        from_config(CFG, simulate=["a:melted"])
+
+
+def test_compat_model_sets_key_and_disables_client_retries():
+    from pixel.models import _compat_model
+    m = _compat_model("groq", {"model": "llama-x", "api_base": "https://api.example/v1",
+                               "key": "groq", "timeout": 30})
+    assert m.model_name == "llama-x" and m.api_base == "https://api.example/v1"
+    assert m.supports_tools
+    assert (m.needs_key, m.key_env_var) == ("groq", "GROQ_API_KEY")
+    client = m.get_client("not-a-real-key")
+    assert client.max_retries == 0 and client.timeout == 30
+    assert str(client.base_url).startswith("https://api.example/v1")
+
+    local = _compat_model("ollama", {"model": "q:7b", "api_base": "http://localhost:11434/v1"})
+    assert local.needs_key is None and local.key_env_var is None   # never the OpenAI key
+    assert "reasoning_effort" not in local.Options.model_fields
+
+
+def test_compat_reasoning_models_accept_reasoning_effort():
+    from pixel.models import _compat_model
+    m = _compat_model("groq", {"model": "openai/gpt-oss-120b", "api_base": "https://x/v1",
+                               "key": "groq", "reasoning": True})
+    opts = m.Options(reasoning_effort="low", temperature=0)
+    assert opts.reasoning_effort == "low"

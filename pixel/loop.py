@@ -3,11 +3,11 @@ call, validate it, run it, wait for the UI to settle, repeat.
 
 Exit codes: 0 finish, 1 error (model error or too many rejected calls),
 2 ask_user, 3 step cap reached, 4 stopped by the user (q, kill hotkey, Ctrl+C,
-or declining the first send).
+or declining the first send), 5 a hard-blocked action was tried twice.
 
 Only windows of apps in run.cloud_apps are ever read, and only their pruned
 tree text is sent to the model. Desktop access goes through a Desktop object so
-tests can replace it with a fake.
+tests can replace it with a fake. Every run and step goes to the action log.
 """
 
 from __future__ import annotations
@@ -19,15 +19,18 @@ import threading
 import time
 from dataclasses import dataclass, field
 
-from pixel.models import ModelAdapter, ModelError, StepRequest
+from pixel import safety
+from pixel.actionlog import OUTCOMES, NullLog
+from pixel.models import Attempt, ModelAdapter, ModelError, ModelReply, StepRequest
 from pixel.tools import ACTION, ToolSpec, menu, validate
 from pixel.bridge.prune import estimate_tokens
 
 KEYSTROKE_TOOLS = {"type_text", "send_keys"}
 HISTORY_TEXT = 200   # characters of read_text output kept in history
 MODEL_POLL = 0.1     # seconds between kill checks while waiting for the model
+MAX_BLOCKED = 2      # hard-blocked calls in one run before it stops
 
-EXIT_FINISH, EXIT_ERROR, EXIT_ASK, EXIT_CAP, EXIT_STOPPED = 0, 1, 2, 3, 4
+EXIT_FINISH, EXIT_ERROR, EXIT_ASK, EXIT_CAP, EXIT_STOPPED, EXIT_BLOCKED = 0, 1, 2, 3, 4, 5
 
 
 # ---------- desktop access ----------
@@ -159,7 +162,8 @@ class Runner:
                  apps: dict, system_prompt: str, confirm: bool = True,
                  max_steps: int | None = None, verbose: bool = False,
                  show_prompt: bool = False, kill=None, chars_per_token: float = 4,
-                 input_fn=input, out=None, err=None, clock=time.monotonic, sleep=time.sleep):
+                 log=None, input_fn=input, out=None, err=None, clock=time.monotonic,
+                 sleep=time.sleep):
         self.command = command
         self.model = model
         self.desktop = desktop
@@ -177,6 +181,7 @@ class Runner:
         self.err = err or sys.stderr
         self.clock = clock
         self.sleep = sleep
+        self.log = log if log is not None else NullLog()
 
         self.cloud_apps = [a for a in run_cfg.get("cloud_apps", []) if a in apps]
         self.allowed_procs = {apps[a]["process"].lower(): a for a in self.cloud_apps}
@@ -190,6 +195,9 @@ class Runner:
         self.tokens_in = 0
         self.tokens_out = 0
         self.t_start = 0.0
+        self.answered: dict[str, int] = {}   # provider -> steps it answered
+        self.fallbacks = 0
+        self.blocked = 0
 
     # --- output ---
     def v(self, msg: str) -> None:
@@ -212,9 +220,54 @@ class Runner:
     def end(self, code: int, msg: str) -> int:
         self.say(msg)
         secs = self.clock() - self.t_start
+        self.log.end(outcome=OUTCOMES.get(code, "error"), exit_code=code, message=msg,
+                     steps=self.step, seconds=secs, tokens_in=self.tokens_in,
+                     tokens_out=self.tokens_out, providers=self.answered,
+                     fallbacks=self.fallbacks)
+        extra = ""
+        if self.answered:
+            by = ", ".join(f"{k} {n}" for k, n in self.answered.items())
+            extra = f"  answered by {by}; {self.fallbacks} fallback{'s' if self.fallbacks != 1 else ''}"
+        if self.log.run_id is not None:
+            extra += f"  log row #{self.log.run_id}"
         self.v(f"[run] {msg}  {self.step} steps, {secs:.1f} s, "
-               f"{self.model.name} in {self.tokens_in:,} out {self.tokens_out:,} total")
+               f"{self.model.name} in {self.tokens_in:,} out {self.tokens_out:,} total{extra}")
         return code
+
+    # --- logging ---
+    def _log_step(self, tree: Tree, reply: ModelReply | None = None, *, tool=None, args=None,
+                  status: str, result: str, action_seconds: float | None = None,
+                  attempts: list[Attempt] | None = None) -> None:
+        if attempts is None:
+            attempts = reply.attempts if reply is not None else []
+        self.log.step(
+            step=self.step,
+            provider=(reply.provider or None) if reply else None,
+            model=reply.model if reply else None,
+            attempts=[a.as_dict() for a in attempts],
+            tree_stats=tree.stats, tree_tokens=tree.tokens, tree_text=tree.text,
+            tool=tool, args=args, status=status, result=result,
+            model_seconds=round(reply.seconds, 2) if reply else None,
+            action_seconds=round(action_seconds, 2) if action_seconds is not None else None,
+            input_tokens=reply.input_tokens if reply else None,
+            output_tokens=reply.output_tokens if reply else None)
+
+    def _show_attempts(self, attempts: list[Attempt], answered_by: str | None) -> None:
+        """Verbose lines for each failed or skipped provider, and count fallbacks."""
+        for i, a in enumerate(attempts):
+            if a.skipped:
+                self.v(f"[{self.step}] model  skipping {a.provider} ({a.kind} earlier this run)")
+                continue
+            if a.retried:
+                nxt = f"retrying {a.provider}"
+            else:
+                self.fallbacks += 1
+                later = [b.provider for b in attempts[i + 1:]
+                         if b.provider != a.provider and not b.skipped]
+                to = later[0] if later else answered_by
+                nxt = f"trying {to}" if to else "no providers left"
+            self.v(f"[{self.step}] model  {a.provider} failed: {a.kind} ({a.error}) "
+                   f"{a.seconds:.1f} s -> {nxt}")
 
     # --- reading ---
     def _apps_list(self) -> str:
@@ -307,7 +360,8 @@ class Runner:
             return True
         print("This window's tree will be sent to the model:", file=self.err)
         print(tree.text, file=self.err)
-        ans = self.ask(f"send this window's tree to {self.model.name}? [y/N] ")
+        to = getattr(self.model, "recipients", lambda: self.model.name)()
+        ans = self.ask(f"send this window's tree to {to}? [y/N] ")
         if ans in ("y", "yes"):
             self.approved.add(tree.handle)
             return True
@@ -341,16 +395,34 @@ class Runner:
     # --- run ---
     def run(self) -> int:
         self.t_start = self.clock()
+        self.log.start(safety.redact_text(self.command), chain=self.model.name,
+                       confirm=self.confirm)
         try:
             return self._run()
         except KeyboardInterrupt:
             return self.end(EXIT_STOPPED, "stopped: Ctrl+C")
+        except BaseException as exc:
+            if not self.log.ended:
+                self.log.end(outcome="crashed", exit_code=None,
+                             message=f"{type(exc).__name__}: {exc}", steps=self.step,
+                             seconds=self.clock() - self.t_start, tokens_in=self.tokens_in,
+                             tokens_out=self.tokens_out, providers=self.answered,
+                             fallbacks=self.fallbacks)
+            raise
 
     def _run(self) -> int:
-        opts = getattr(self.model, "describe_options", lambda: "")()
         kill_desc = getattr(self.kill, "hotkey", None) if self.kill is not None else None
-        self.v(f"[run] model {self.model.name}{f' ({opts})' if opts else ''}  cap {self.cap}  "
-               f"confirm {'on' if self.confirm else 'off'}  kill {kill_desc or 'off'}")
+        tail = (f"cap {self.cap}  confirm {'on' if self.confirm else 'off'}  "
+                f"kill {kill_desc or 'off'}")
+        describe = getattr(self.model, "describe", None)
+        if describe:
+            self.v(f"[run] chain {describe()}")
+            self.v(f"[run] {tail}")
+        else:
+            opts = getattr(self.model, "describe_options", lambda: "")()
+            self.v(f"[run] model {self.model.name}{f' ({opts})' if opts else ''}  {tail}")
+        if self.log.path:
+            self.v(f"[run] log {self.log.path}  run #{self.log.run_id}")
 
         history: list[str] = []
         last_result = "(none yet)"
@@ -371,7 +443,7 @@ class Runner:
 
             prompt = self.build_prompt(history, last_result, tree, text_data)
             text_data = None
-            req = StepRequest(self.system, prompt, self.specs)
+            req = StepRequest(self.system, prompt, self.specs, should_stop=self.killed)
             est = estimate_tokens(self.system + prompt + json.dumps(
                 [[s.name, s.description, s.schema] for s in self.specs]), self.cpt)
             if self.show_prompt:
@@ -384,12 +456,19 @@ class Runner:
             except ModelError as exc:
                 if self.killed():
                     return self.end(EXIT_STOPPED, "stopped: kill hotkey")
+                self._show_attempts(exc.attempts, None)
+                self._log_step(tree, status="model_error", result=str(exc),
+                               attempts=exc.attempts)
                 return self.end(EXIT_ERROR, f"stopped: model error: {exc}")
             if reply is None:
                 return self.end(EXIT_STOPPED, "stopped: kill hotkey (during the model call)")
+            self._show_attempts(reply.attempts, reply.provider or None)
+            who = reply.provider or reply.model
+            self.answered[who] = self.answered.get(who, 0) + 1
             self.tokens_in += reply.input_tokens or 0
             self.tokens_out += reply.output_tokens or 0
-            self.v(f"[{step}] model  prompt ~{est:,} tok est | {reply.model} in "
+            self.v(f"[{step}] model  prompt ~{est:,} tok est | "
+                   f"{reply.provider + ' ' if reply.provider else ''}{reply.model} in "
                    f"{reply.input_tokens if reply.input_tokens is not None else '?'} out "
                    f"{reply.output_tokens if reply.output_tokens is not None else '?'} thoughts "
                    f"{reply.thought_tokens if reply.thought_tokens is not None else '?'} | "
@@ -404,25 +483,55 @@ class Runner:
                 name, args = reply.calls[0]
                 extra = len(reply.calls) - 1
                 ok, clean = validate(name, args, self.specs, set(tree.ids))
-                call_str = format_call(name, clean if ok else args)
+                shown_args = clean if ok else args
+                if isinstance(shown_args, dict):
+                    # never print or log card/ID text, even from a rejected call
+                    shown_args = safety.redact(shown_args, safety.check(name, shown_args))
+                call_str = format_call(name, shown_args)
                 result = "" if ok else clean
             if not ok:
                 rejected += 1
                 self.v(f"[{step}] reject {call_str} -> {result}")
                 history.append(f"{step}. {call_str} -> {_clip(result, 200)}")
                 last_result = result
+                self._log_step(tree, reply, tool=name,
+                               args=shown_args if name else {"text": _clip(reply.text, 300)},
+                               status="rejected", result=result)
                 if rejected >= max_rejected:
                     return self.end(EXIT_ERROR, f"stopped: {rejected} rejected calls in a row")
                 continue
             rejected = 0
             extra_note = f" ({extra} extra call{'s' if extra > 1 else ''} ignored)" if extra else ""
 
+            # --- hard blocks (before confirm: they cannot be approved) ---
+            label = tree.ids.get(clean["id"]) if "id" in clean else None
+            blk = safety.check(name, clean, label)
+            if blk:
+                self.blocked += 1
+                safe_args = safety.redact(clean, blk)
+                call_str = format_call(name, safe_args)
+                result = blk.message()
+                self.v(f"[{step}] block  {format_call(name, safe_args, tree.ids)} -> "
+                       f"{blk.category}: {blk.reason}")
+                history.append(f"{step}. {call_str} -> {_clip(result, 200)}")
+                last_result = result
+                self._log_step(tree, reply, tool=name, args=safe_args, status="blocked",
+                               result=result)
+                if self.blocked >= MAX_BLOCKED:
+                    return self.end(EXIT_BLOCKED, f"stopped: blocked action tried again "
+                                                  f"({blk.category})")
+                continue   # nothing changed on screen: same tree and IDs
+
             # --- stop tools ---
             if name == "finish":
                 self.v(f"[{step}] action {call_str}")
+                self._log_step(tree, reply, tool=name, args=clean, status="stop",
+                               result=clean["summary"])
                 return self.end(EXIT_FINISH, f"finish: {clean['summary']}")
             if name == "ask_user":
                 self.v(f"[{step}] action {call_str}")
+                self._log_step(tree, reply, tool=name, args=clean, status="stop",
+                               result=clean["question"])
                 return self.end(EXIT_ASK, f"question: {clean['question']}")
 
             # --- confirm ---
@@ -437,6 +546,8 @@ class Runner:
                     self.v(f"[{step}] action {call_str} -> declined")
                     history.append(f"{step}. {call_str} -> {result}")
                     last_result = result
+                    self._log_step(tree, reply, tool=name, args=clean, status="declined",
+                                   result=result)
                     tree = None
                     continue
                 if name in KEYSTROKE_TOOLS and self.target_handle:
@@ -455,6 +566,9 @@ class Runner:
                 self.target_handle = found["handle"] if found else None
             result = summarize(name, clean, res) + extra_note
             self.v(f"[{step}] action {call_str} -> {result} | {secs:.1f} s")
+            self._log_step(tree, reply, tool=name, args=clean,
+                           status="ok" if res.get("ok") else "error", result=result,
+                           action_seconds=secs)
             if name == "read_text" and res.get("ok"):
                 text = res.get("text", "")
                 text_data = text
